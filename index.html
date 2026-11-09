@@ -1,0 +1,1408 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Spacetime Edge</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #000; overflow: hidden; touch-action: none; -webkit-user-select: none; user-select: none; font-family: -apple-system, "PingFang SC", "Helvetica Neue", sans-serif; }
+  canvas#c, canvas#fx { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+  canvas#fx { pointer-events: none; }
+  #hud { position: fixed; left: 12px; top: 10px; color: rgba(232,236,255,.88); font-size: 12px; line-height: 1.6; pointer-events: none; text-shadow: 0 1px 3px #000; max-width: 62vw; }
+  #hud .big { font-size: 26px; font-weight: 300; color: #fff; font-variant-numeric: tabular-nums; letter-spacing: .5px; }
+  #hud .big .u { font-size: 14px; color: rgba(220,226,250,.7); }
+  #hud .sub { color: rgba(200,206,230,.6); font-size: 11.5px; margin-bottom: 4px; }
+  #hud .clk { color: rgba(225,230,250,.8); font-size: 12px; line-height: 1.55; margin-top: 2px; }
+  #hint { color: rgba(200,206,230,.7); font-size: 12px; margin-bottom: 6px; transition: opacity 1s; max-width: 60vw; }
+  #verifyBtn { top: auto !important; bottom: 14px; left: 10px; right: auto !important; font-size: 11px !important; padding: 4px 9px !important; opacity: .5; }
+  #hud .num { font-variant-numeric: tabular-nums; color: #fff; }
+  #hud .dim { color: rgba(200,206,230,.62); }
+  #hud .warn { color: #ffb48a; }
+  #panel { margin-top: 5px; padding: 6px 10px; border-radius: 10px; background: rgba(10,12,22,.5); border: 1px solid rgba(255,255,255,.1); display: inline-block; }
+  .btn { white-space: nowrap; position: fixed; padding: 5px 10px; border-radius: 5px; border: 1px solid rgba(255,255,255,.13); background: rgba(8,10,18,.55); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); color: rgba(232,236,255,.9); font-size: 11.5px; letter-spacing: .02em; cursor: pointer; font-family: inherit; transition: border-color .2s, background .2s; }
+  .btn:hover { border-color: rgba(255,255,255,.32); }
+  .btn:active { background: rgba(60,66,100,.6); }
+  .btn.on { background: rgba(255,255,255,.14); color: #fff; border-color: rgba(255,255,255,.55); }
+  #topR { position: fixed; right: 10px; top: 10px; display: flex; gap: 6px; z-index: 10; }
+  #topR .btn { position: static; }
+  #menuBtn { font-size: 13px !important; line-height: 1; padding: 5px 9px !important; }
+  #menu { position: fixed; right: 10px; top: 44px; min-width: 150px; display: none; z-index: 12; background: rgba(8,10,18,.85); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,.13); border-radius: 6px; padding: 6px; font-size: 12px; }
+  #menu .mh { color: rgba(200,206,230,.5); font-size: 10px; letter-spacing: .14em; text-transform: uppercase; padding: 4px 8px 6px; }
+  #menu .mi { color: rgba(232,236,255,.9); padding: 6px 8px; border-radius: 4px; }
+  #menu .mi.on { background: rgba(255,255,255,.1); color: #fff; }
+  #verifyBtn { right: 10px; top: 46px; } #sound { right: 10px; top: 82px; } #bhBtn { right: 10px; top: 118px; }
+  #modes { position: fixed; left: 50%; transform: translateX(-50%); bottom: 12px; display: flex; gap: 6px; }
+  #modes .btn, #acts .btn { position: static; }
+  #acts { position: fixed; right: 10px; bottom: 56px; display: flex; flex-direction: column; gap: 7px; align-items: flex-end; }
+  #fallBtn { padding: 7px 12px; font-size: 12.5px; border-color: rgba(255,160,110,.55); color: #ffd2b8; background: rgba(40,16,8,.5); }
+  #zoom { position: fixed; right: 16px; top: 160px; width: 30px; height: 210px; border-radius: 6px; background: rgba(8,10,18,.55); border: 1px solid rgba(255,255,255,.13); touch-action: none; }
+  #zoom .track { position: absolute; left: 14px; top: 14px; bottom: 14px; width: 2px; background: rgba(255,255,255,.25); }
+  #zoom .knob { position: absolute; left: 7px; width: 16px; height: 16px; margin-top: -8px; border-radius: 50%; background: #e6e9f7; }
+  #zoom .tick { position: absolute; right: 36px; color: rgba(200,206,230,.75); font-size: 10.5px; white-space: nowrap; transform: translateY(-50%); pointer-events: none; }
+  #joy { position: fixed; left: 20px; bottom: 60px; width: 110px; height: 110px; border-radius: 50%; border: 1px solid rgba(255,255,255,.2); background: rgba(255,255,255,.04); display: none; }
+  #knob { position: absolute; left: 35px; top: 35px; width: 40px; height: 40px; border-radius: 50%; background: rgba(255,255,255,.26); }
+  #map { position: fixed; inset: 0; width: 100%; height: 100%; background: rgba(3,4,10,.9); display: none; }
+  #cone { position: fixed; left: 12px; bottom: 56px; width: 340px; background: #04050a; border: 1px solid rgba(140,160,230,.18); border-radius: 12px; padding: 0 0 8px; overflow: hidden; box-sizing: border-box; display: none; box-shadow: 0 4px 30px rgba(0,0,0,.7); }
+  #cone canvas { width: 338px; height: 300px; display: block; touch-action: none; }
+  #cone .t { color: #c8d0e8; font-size: 11.5px; line-height: 1.55; padding: 2px 12px 0; }
+  #cone .t b { font-weight: 600; color: #fff; }
+  #info { position: fixed; left: 50%; bottom: 58px; transform: translateX(-50%); color: #e6f6ff; font-size: 13px; line-height: 1.55; background: rgba(8,14,26,.78); border: 1px solid rgba(120,220,255,.28); padding: 7px 14px; border-radius: 14px; opacity: 0; transition: opacity .4s; max-width: min(560px, 76vw); text-align: center; pointer-events: none; }
+  #endMsg { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; background: rgba(0,0,0,.55); color: #eef; text-align: center; font-size: 15px; line-height: 1.8; padding: 30px; box-sizing: border-box; }
+  #endMsg .btn { position: static; margin-top: 22px; font-size: 15px; padding: 8px 18px; }
+  #verify { position: fixed; inset: 0; background: rgba(4,5,12,.985); color: #e6e9f7; font-size: 13.5px; line-height: 1.65; overflow-y: auto; display: none; padding: 26px 20px 60px; box-sizing: border-box; }
+  #verify h2 { font-size: 18px; margin: 0 0 4px; color: #fff; font-weight: 600; }
+  #verify .sub { color: rgba(200,206,230,.65); margin-bottom: 16px; max-width: 860px; }
+  #verify table { border-collapse: collapse; width: 100%; max-width: 900px; }
+  #verify th, #verify td { text-align: left; padding: 8px 9px; border-bottom: 1px solid rgba(255,255,255,.09); vertical-align: top; }
+  #verify th { color: rgba(200,206,230,.7); font-weight: 500; font-size: 12.5px; }
+  #verify td.n { font-variant-numeric: tabular-nums; white-space: nowrap; }
+  #verify td.ok { color: #8ff0b0; white-space: nowrap; }
+  #verify .note { max-width: 900px; color: rgba(210,214,236,.75); margin-top: 18px; font-size: 12.5px; }
+  #verify .vh { color: #fff; font-size: 13.5px; font-weight: 600; margin: 16px 0 6px; }
+  #verify .vl { margin: 0; padding-left: 18px; } #verify .vl li { margin-bottom: 4px; } #verify .vl b { color: #fff; font-weight: 600; }
+  #verify .close { position: fixed; right: 12px; top: 10px; }
+  #err { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; color: #ccd; font-size: 14px; padding: 24px; text-align: center; }
+
+  #cap { position: fixed; left: 50%; bottom: 60px; transform: translateX(-50%); width: min(620px, 88vw); color: #fff; font-size: 15px; line-height: 1.6; text-align: center; text-shadow: 0 1px 4px #000, 0 0 10px #000; background: rgba(0,0,0,.35); border-radius: 12px; padding: 8px 14px; box-sizing: border-box; opacity: 0; transition: opacity .6s; pointer-events: none; z-index: 12; }
+  #miniBox { position: fixed; right: 10px; top: 160px; width: 170px; background: rgba(6,8,16,.78); border: 1px solid rgba(255,255,255,.15); border-radius: 10px; padding: 6px; box-sizing: border-box; display: none; z-index: 9; }
+  #miniBox canvas { width: 158px; height: 158px; display: block; }
+  #miniBox .t { color: rgba(220,228,250,.85); font-size: 11px; line-height: 1.5; margin-top: 4px; }
+  #bodyBox { position: fixed; left: 12px; bottom: 60px; width: 150px; height: 190px; background: rgba(6,8,16,.78); border: 1px solid rgba(255,255,255,.15); border-radius: 10px; display: none; z-index: 9; }
+  #bodyBox canvas { width: 150px; height: 190px; display: block; }
+  #map { z-index: 5; } #cone { z-index: 6; }
+  .btn, #modes, #acts, #zoom { z-index: 10; }
+  #info { z-index: 11; } #endMsg { z-index: 15; } #verify { z-index: 20; }
+  @media (max-width: 520px) {
+    #hud { font-size: 11px; max-width: 70vw; } #hud b { font-size: 13px; }
+    #cone { left: 6px; right: 6px; width: auto; bottom: 52px; }
+    #cone canvas { width: 100%; height: 250px; }
+    #zoom { top: 156px; height: 180px; }
+    #cap { font-size: 13.5px; bottom: 56px; }
+    #miniBox { width: 140px; top: 156px; } #miniBox canvas { width: 128px; height: 128px; }
+    #bodyBox { width: 128px; height: 168px; bottom: 56px; left: 6px; } #bodyBox canvas { width: 128px; height: 168px; }
+    .btn { font-size: 11px; padding: 5px 9px; }
+  }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<canvas id="fx"></canvas>
+<div id="hud">
+  <div id="hint"></div>
+  <div class="big"><span id="rM"></span><span class="u"> M</span></div>
+  <div class="sub" id="rKm"></div>
+  <div class="clk">Your clock <span class="num" id="tYou"></span><br>Far clock <span class="num" id="tFar"></span><span id="rate" hidden></span><span id="play" hidden></span></div>
+  <div id="fallLines" class="clk" style="display:none"></div>
+  <div id="probeLines" class="clk" style="display:none"></div>
+</div>
+<div id="topR"><button class="btn" id="reset">Restart</button><button class="btn" id="menuBtn" aria-label="Scenes">☰</button></div>
+<div id="menu"><div class="mh">Scenes</div><div class="mi on">Black hole</div></div>
+<button class="btn" id="verifyBtn">Validation</button>
+<button class="btn" id="sound">Sound: off</button>
+<button class="btn" id="bhBtn">Switch black hole</button>
+<div id="zoom"><div class="track"></div><div class="knob"></div></div>
+<div id="acts">
+  <button class="btn" id="speedBtn">Speed ×1</button>
+  <button class="btn" id="probeBtn">Drop probe</button>
+  <button class="btn" id="fallBtn">Cut engine and fall</button>
+</div>
+<div id="modes">
+  <button class="btn" id="mOrbit" style="display:none">Orbit</button>
+  <button class="btn" id="mFP" style="display:none">First person</button>
+  <button class="btn" id="mMap" style="display:none">Map</button>
+  <button class="btn" id="mCone">Spacetime</button>
+  <button class="btn" id="mFish">All-sky</button>
+</div>
+<div id="joy"><div id="knob"></div></div>
+<canvas id="map"></canvas>
+<div id="cone"><canvas id="coneC"></canvas><div class="t" id="coneT"></div></div>
+<div id="info"></div>
+<div id="cap"></div>
+<div id="miniBox"><canvas id="mini"></canvas><div class="t" id="miniT"></div></div>
+<div id="bodyBox"><canvas id="bodyC"></canvas></div>
+<div id="endMsg"><div><div id="endTxt"></div><button class="btn" id="endReset">Restart</button></div></div>
+<div id="verify">
+  <button class="btn close" id="verifyClose">Back</button>
+  <h2>Validation</h2>
+  <div class="sub">The ray tracer that draws the scene, run here on test cases with known exact answers.</div>
+  <table id="vt"><thead><tr><th></th><th>Exact</th><th>Renderer</th><th>Error</th><th>Formula</th></tr></thead><tbody></tbody></table>
+  <div class="note" id="vnote"></div>
+</div>
+<div id="dbg" style="position:fixed;right:8px;bottom:40px;z-index:30;display:none;font:11px/1.5 ui-monospace,Menlo,monospace;color:#9f9;background:rgba(0,0,0,.75);padding:6px 9px;border-radius:6px;white-space:pre"></div>
+<div id="err">This browser does not support WebGL2. Please try a recent version of Chrome, Edge, Firefox or Safari.</div>
+
+<script>
+(function(){
+'use strict';
+// ================================================================ physics (Painlevé-Gullstrand form of Schwarzschild, G = c = M = 1)
+// ds^2 = -dt^2 + |dx - v dt|^2, v = -sqrt(2/r) xhat: space flows inward at the local escape speed.
+// photon: dx/dt = phat + v, dp/dt = sqrt2 r^-1.5 (p - 1.5 (x.p) x / r^2), E = |p| + v.p is conserved.
+const PH = (() => {
+  const S2 = Math.SQRT2;
+  const add = (a, b) => [a[0] + b[0], a[1] + b[1], a[2] + b[2]];
+  const sub = (a, b) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
+  const mul = (a, k) => [a[0] * k, a[1] * k, a[2] * k];
+  const dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+  const len = a => Math.hypot(a[0], a[1], a[2]);
+  const norm = a => { const l = len(a) || 1; return [a[0] / l, a[1] / l, a[2] / l]; };
+  const cross = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+  const flow = x => { const r = len(x); return mul(x, -Math.sqrt(2 / r) / r); };
+  function deriv(x, p, sgn) {
+    const r = len(x), pl = len(p);
+    const dx = mul(add(mul(p, 1 / pl), flow(x)), sgn);
+    const dp = mul(sub(p, mul(x, 1.5 * dot(x, p) / (r * r))), sgn * S2 * Math.pow(r, -1.5));
+    return [dx, dp];
+  }
+  function boost(n, w) {
+    const wl = len(w); if (wl < 1e-9) return n.slice();
+    const wh = mul(w, 1 / wl), g = 1 / Math.sqrt(1 - wl * wl);
+    return add(n, mul(wh, (g - 1) * dot(n, wh) + g * wl));
+  }
+  function energy(x, p) { return len(p) + dot(flow(x), p); }
+  function trace(x0, p0, sgn, opt) {
+    opt = opt || {};
+    let x = x0.slice(), p = p0.slice();
+    const r0 = len(x0), rEsc = opt.rEsc || Math.max(r0 * 1.05, 60), maxSteps = opt.maxSteps || 800, disk = opt.disk !== false;
+    const path = opt.path ? [x.slice()] : null;
+    let end = 'lost', minR = r0, hit = null, sweep = 0;
+    const e1 = opt.plane ? opt.plane[0] : null, e2 = opt.plane ? opt.plane[1] : null;
+    let lastAng = e1 ? Math.atan2(dot(x, e2), dot(x, e1)) : 0;
+    for (let i = 0; i < maxSteps; i++) {
+      const r = len(x);
+      const d0 = deriv(x, p, sgn), drds = dot(x, d0[0]) / r;
+      if (r < 0.04) { end = 'center'; break; }
+      if (r > 1.9 && r < 2.1 && Math.abs(drds) < 0.03) { end = 'hole'; break; }
+      if (r > rEsc && drds > 0) { end = 'sky'; break; }
+      const h = 0.04 * r;
+      const k1 = d0;
+      const k2 = deriv(add(x, mul(k1[0], h / 2)), add(p, mul(k1[1], h / 2)), sgn);
+      const k3 = deriv(add(x, mul(k2[0], h / 2)), add(p, mul(k2[1], h / 2)), sgn);
+      const k4 = deriv(add(x, mul(k3[0], h)), add(p, mul(k3[1], h)), sgn);
+      const xn = add(x, mul(add(add(k1[0], mul(k2[0], 2)), add(mul(k3[0], 2), k4[0])), h / 6));
+      const pn = add(p, mul(add(add(k1[1], mul(k2[1], 2)), add(mul(k3[1], 2), k4[1])), h / 6));
+      if (disk && x[1] * xn[1] < 0) {
+        const t = x[1] / (x[1] - xn[1]), q = add(x, mul(sub(xn, x), t)), rq = len(q);
+        if (rq > 6 && rq < 22) { end = 'disk'; hit = q; x = q; if (path) path.push(q); break; }
+      }
+      x = xn; p = pn; minR = Math.min(minR, len(x));
+      if (e1) { const a = Math.atan2(dot(x, e2), dot(x, e1)); let da = a - lastAng; da -= 2 * Math.PI * Math.round(da / (2 * Math.PI)); sweep += da; lastAng = a; }
+      if (path) path.push(x.slice());
+    }
+    return { end, x, p, minR, hit, path, sweep: Math.abs(sweep) };
+  }
+  // speed of a radial free-faller with energy e relative to the rain observer (outward positive)
+  function wFall(e, r) { const b = Math.sqrt(2 / r), q = e * e - 1 + b * b; return (b - e * Math.sqrt(Math.max(q, 0))) / (e * e + b * b); }
+  // coordinate time for outgoing radial light: t = F(r) + const, valid for r > 2
+  function Fout(r) { const u = Math.sqrt(r); return r + 2 * Math.SQRT2 * u + 4 * Math.log(Math.max(u - Math.SQRT2, 1e-12)); }
+  return { add, sub, mul, dot, len, norm, cross, flow, deriv, boost, energy, trace, wFall, Fout };
+})();
+const V = PH;
+
+// ================================================================ black holes
+const BHS = [
+  { name: 'Sagittarius A*, centre of the Milky Way, 4.3 million solar masses', short: 'Sgr A*', msun: 4.3e6 },
+  { name: 'Gaia BH1, nearest known black hole, about 10 solar masses', short: 'Gaia BH1', msun: 9.6 }
+];
+let bhi = 0;
+const Mlen = () => BHS[bhi].msun * 1476.6;      // metres in 1 M
+const Msec = () => BHS[bhi].msun * 4.9255e-6;   // seconds in 1 M
+const TEAR = 1000;                               // m/s^2 across the body, roughly 100 g: where a body comes apart
+const BODY = 1.8;
+const tidal = r => 2 * 8.98755e16 * BODY / (Mlen() * Mlen() * r * r * r);
+function fmtLen(m) {
+  if (m < 1000) return m.toFixed(0) + ' m';
+  const km = m / 1000;
+  if (km >= 1e9) return (km / 1e9).toFixed(2) + ' billion km';
+  if (km >= 1e6) return (km / 1e6).toFixed(km >= 1e7 ? 0 : 1) + ' million km';
+  return (km < 100 ? km.toFixed(1) : Math.round(km).toLocaleString('en-US')) + ' km';
+}
+function fmtT(s) {
+  if (!isFinite(s)) return '∞';
+  if (s < 1e-3) return (s * 1e6).toFixed(1) + ' µs';
+  if (s < 1) return (s * 1e3).toFixed(2) + ' ms';
+  if (s < 60) return s.toFixed(1) + ' s';
+  if (s < 86400 * 3) { const h = Math.floor(s / 3600), m = Math.floor(s / 60) % 60, x = Math.floor(s % 60); return (h ? h + 'h ' : '') + m + 'm ' + x + 's'; }
+  if (s < 86400 * 365 * 3) return (s / 86400).toFixed(1) + ' days';
+  return (s / 86400 / 365.25).toFixed(1) + ' years';
+}
+function fmtRate(k) {
+  if (k >= 1) return '×' + (k < 10 ? k.toFixed(1) : k < 1e4 ? k.toFixed(0) : k.toExponential(1));
+  const inv = 1 / k;
+  return '1/' + (inv < 10 ? inv.toFixed(1) : inv < 1e4 ? inv.toFixed(0) : inv.toExponential(1)) + ' speed';
+}
+function fmtG(a) { const g = a / 9.8; if (g < 1e-3) return g.toExponential(1); if (g < 10) return g.toFixed(3); if (g < 1e4) return g.toFixed(0); return g.toExponential(1); }
+
+// ================================================================ WebGL
+const canvas = document.getElementById('c');
+const gl = canvas.getContext('webgl2', { antialias: false, depth: false, alpha: false, preserveDrawingBuffer: true, powerPreference: 'high-performance' });
+if (!gl) { document.getElementById('err').style.display = 'flex'; return; }
+const hasFloat = !!gl.getExtension('EXT_color_buffer_float');
+gl.getExtension('OES_texture_float_linear');
+const ENC = hasFloat ? 0 : 1;
+const HEAD = `#version 300 es
+precision highp float;
+#define ENC ${ENC}
+vec3 dec(vec4 c){ return ENC == 1 ? c.rgb / max(1.0 - c.rgb, 1e-3) * 8.0 : c.rgb; }
+vec4 enc(vec3 c){ c = min(c, vec3(60000.0)); return ENC == 1 ? vec4(c / 8.0 / (1.0 + c / 8.0), 1.0) : vec4(c, 1.0); }
+`;
+const VS = `#version 300 es
+in vec2 aPos; out vec2 vUv;
+void main(){ vUv = aPos * 0.5 + 0.5; gl_Position = vec4(aPos, 0.0, 1.0); }`;
+const RT = HEAD + `
+in vec2 vUv; out vec4 o;
+uniform vec2 uRes; uniform vec3 uPos, uF, uR, uU, uW; uniform float uFy, uTime, uBlend, uSpin, uFish;
+uniform vec2 uJit; uniform sampler2D uPrev;
+const float RIN = 6.0, ROUT = 22.0, TPK = 6500.0;
+float hash13(vec3 p){ p = fract(p * 0.1031); p += dot(p, p.zyx + 31.32); return fract((p.x + p.y) * p.z); }
+float vnoise(vec3 p){
+  vec3 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
+  float a = hash13(i), b = hash13(i + vec3(1,0,0)), c = hash13(i + vec3(0,1,0)), d = hash13(i + vec3(1,1,0));
+  float e = hash13(i + vec3(0,0,1)), g = hash13(i + vec3(1,0,1)), h = hash13(i + vec3(0,1,1)), k = hash13(i + vec3(1,1,1));
+  return mix(mix(mix(a,b,f.x), mix(c,d,f.x), f.y), mix(mix(e,g,f.x), mix(h,k,f.x), f.y), f.z);
+}
+float fbm(vec3 p){ float s = 0.0, a = 0.5; for (int i = 0; i < 4; i++) { s += a * vnoise(p); p = p * 2.03 + 7.1; a *= 0.5; } return s; }
+vec3 bb(float T){
+  T = clamp(T, 1000.0, 40000.0) / 100.0;
+  float r = T <= 66.0 ? 1.0 : clamp(1.292936 * pow(T - 60.0, -0.1332047), 0.0, 1.0);
+  float g = T <= 66.0 ? clamp(0.3900816 * log(T) - 0.6318414, 0.0, 1.0) : clamp(1.1298909 * pow(T - 60.0, -0.0755148), 0.0, 1.0);
+  float b = T >= 66.0 ? 1.0 : (T <= 19.0 ? 0.0 : clamp(0.5432068 * log(T - 10.0) - 1.1962541, 0.0, 1.0));
+  return pow(vec3(r, g, b), vec3(2.2));
+}
+vec3 tintOf(float T){ vec3 t = bb(T); return t / max(max(t.r, t.g), max(t.b, 1e-4)); }
+// the sky at infinity, seen with frequency factor g (g > 1 blueshift)
+vec3 sky(vec3 d, float g){
+  float boostI = min(pow(g, 4.0), 60.0);
+  vec3 neb = vec3(0.0);
+  vec3 nb = normalize(vec3(0.25, 0.92, -0.3));
+  float lat = dot(d, nb);
+  float band = exp(-lat * lat * 14.0);
+  float n1 = fbm(d * 3.5) * fbm(d * 7.0 + 3.0);
+  float lum = 0.0016 + band * (0.02 + 0.03 * n1 * 1.6);
+  float dust = smoothstep(0.38, 0.62, fbm(d * 9.0 + 11.0));
+  lum *= 1.0 - band * dust * 0.6;
+  vec3 shift = tintOf(6000.0 * g) / tintOf(6000.0);
+  vec3 col = tintOf(5200.0 * g) * lum * 1.1;
+  float m1 = smoothstep(0.52, 0.78, fbm(d * 2.1 + 5.0)), m2 = smoothstep(0.55, 0.8, fbm(d * 2.6 + 17.0)), m3 = smoothstep(0.56, 0.82, fbm(d * 1.8 + 31.0));
+  col += shift * (vec3(0.85, 0.18, 0.55) * m1 * 0.05 + vec3(0.12, 0.35, 1.0) * m2 * 0.05 + vec3(0.1, 0.85, 0.7) * m3 * 0.035) * (0.6 + 0.8 * fbm(d * 6.0 + 2.0));
+  for (int i = 0; i < 3; i++) {
+    float sc = i == 0 ? 70.0 : (i == 1 ? 150.0 : 320.0);
+    vec3 q = d * sc; vec3 c = floor(q); vec3 f = fract(q);
+    float h = hash13(c);
+    float th = (i == 0 ? 0.992 : 0.975) - band * (i == 2 ? 0.05 : 0.01);
+    if (h > th) {
+      vec3 sp = vec3(hash13(c + 1.3), hash13(c + 2.7), hash13(c + 5.1)) * 0.6 + 0.2;
+      float w = i == 0 ? 0.09 : 0.11;
+      float s = exp(-dot(f - sp, f - sp) / (w * w * 0.25));
+      float mag = pow((h - th) / (1.0 - th), 1.5) * (i == 0 ? 9.0 : (i == 1 ? 3.0 : 1.2));
+      float t = hash13(c + 9.0);
+      vec3 tc = tintOf(mix(2600.0, 16000.0, t) * g); tc = pow(tc, vec3(1.7));
+      col += tc / max(max(tc.r, tc.g), max(tc.b, 1e-4)) * s * mag;
+    }
+  }
+  return col * boostI;
+}
+vec3 dflow(vec3 x){ float r = length(x); return -sqrt(2.0 / r) / r * x; }
+void deriv(vec3 x, vec3 p, out vec3 dx, out vec3 dp){
+  float r = length(x);
+  dx = -(normalize(p) + dflow(x));
+  dp = -1.41421356 * pow(r, -1.5) * (p - 1.5 * dot(x, p) / (r * r) * x);
+}
+void main(){
+  vec2 uv = ((gl_FragCoord.xy + uJit) * 2.0 - uRes) / min(uRes.x, uRes.y);
+  vec3 d = normalize(uF * uFy + uv.x * uR + uv.y * uU);
+  if (uFish > 0.5) {
+    float rho = length(uv) / 0.92;
+    if (rho > 1.0) { vec3 prev0 = dec(texture(uPrev, vUv)); o = enc(mix(prev0, vec3(0.0), uBlend)); return; }
+    float th = rho * 3.14159265; vec2 a = rho > 1e-5 ? uv / length(uv) : vec2(0.0);
+    d = normalize(cos(th) * uF + sin(th) * (a.x * uR + a.y * uU));
+  }
+  vec3 n = -d; vec3 p = n;
+  float wl = length(uW);
+  if (wl > 1e-6) { vec3 wh = uW / wl; float gm = 1.0 / sqrt(1.0 - wl * wl); p = n + ((gm - 1.0) * dot(n, wh) + gm * wl) * wh; }
+  vec3 x = uPos; float r0 = length(x);
+  float E = length(p) + dot(dflow(x), p);
+  float rEsc = max(r0 * 1.05, 60.0);
+  vec3 col = vec3(0.0); float T = 1.0; bool esc = false;
+  for (int i = 0; i < 700; i++) {
+    float r = length(x);
+    vec3 k1x, k1p; deriv(x, p, k1x, k1p);
+    float drds = dot(x, k1x) / r;
+    if (r > 1.9 && r < 2.1 && abs(drds) < 0.03) break;
+    if (r > rEsc && drds > 0.0) { esc = true; break; }
+    float h = 0.04 * r;
+    vec3 k2x, k2p, k3x, k3p, k4x, k4p;
+    deriv(x + 0.5 * h * k1x, p + 0.5 * h * k1p, k2x, k2p);
+    deriv(x + 0.5 * h * k2x, p + 0.5 * h * k2p, k3x, k3p);
+    deriv(x + h * k3x, p + h * k3p, k4x, k4p);
+    vec3 xn = x + h / 6.0 * (k1x + 2.0 * k2x + 2.0 * k3x + k4x);
+    vec3 pn = p + h / 6.0 * (k1p + 2.0 * k2p + 2.0 * k3p + k4p);
+    if (x.y * xn.y < 0.0) {
+      float t = x.y / (x.y - xn.y);
+      vec3 q = mix(x, xn, t); float rq = length(q);
+      if (rq > RIN && rq < ROUT) {
+        vec3 pq = mix(p, pn, t);
+        float Om = uSpin / (rq * sqrt(rq));
+        float ut = 1.0 / sqrt(1.0 - 3.0 / rq);
+        float Ly = cross(q, pq).y;
+        float g = 1.0 / (ut * (E - Om * Ly));
+        float xr = rq / RIN;
+        float prof = pow(xr, -0.75) * pow(max(1.0 - inversesqrt(xr), 0.0), 0.25) / 0.4880;
+        float ang = -Om * uTime * 1.2;
+        vec3 qq = vec3(cos(ang) * q.x - sin(ang) * q.z, 0.0, sin(ang) * q.x + cos(ang) * q.z);
+        float n1 = fbm(vec3(qq.x * 0.55, rq * 1.7, qq.z * 0.55));
+        float n2 = fbm(vec3(qq.x * 2.2, rq * 5.0, qq.z * 2.2));
+        float dens = clamp(0.35 + 0.9 * n1 * n1 + 0.35 * n2, 0.0, 1.4);
+        float edge = smoothstep(RIN, RIN + 0.5, rq) * (1.0 - smoothstep(ROUT - 7.0, ROUT, rq));
+        float a = clamp(dens * edge * 0.95, 0.0, 0.97);
+        vec3 em = bb(g * TPK * prof) * min(pow(g * prof, 4.0), 60.0) * 1.3 * (0.55 + 0.6 * dens);
+        col += T * a * em;
+        T *= 1.0 - a;
+        if (T < 0.02) break;
+      }
+    }
+    x = xn; p = pn;
+  }
+  if (esc) col += T * sky(-normalize(p), 1.0 / E);
+  vec3 prev = dec(texture(uPrev, vUv));
+  o = enc(mix(prev, col, uBlend));
+}`;
+const DOWN = HEAD + `
+in vec2 vUv; out vec4 o; uniform sampler2D uSrc; uniform vec2 uTx; uniform float uPre; uniform float uExp;
+vec3 S(vec2 u){ vec3 c = dec(texture(uSrc, u)); return uPre > 0.5 ? max(c * uExp - 1.0, 0.0) : c; }
+void main(){ vec2 h = uTx * 0.5;
+  vec3 c = S(vUv) * 4.0 + S(vUv - h) + S(vUv + h) + S(vUv + vec2(h.x, -h.y)) + S(vUv - vec2(h.x, -h.y));
+  o = enc(c / 8.0); }`;
+const UP = HEAD + `
+in vec2 vUv; out vec4 o; uniform sampler2D uSrc; uniform sampler2D uBase; uniform vec2 uTx;
+vec3 S(vec2 u){ return dec(texture(uSrc, u)); }
+void main(){ vec2 h = uTx * 0.5;
+  vec3 c = S(vUv + vec2(-h.x * 2.0, 0.0)) + S(vUv + vec2(-h.x, h.y)) * 2.0 + S(vUv + vec2(0.0, h.y * 2.0)) + S(vUv + vec2(h.x, h.y)) * 2.0
+         + S(vUv + vec2(h.x * 2.0, 0.0)) + S(vUv + vec2(h.x, -h.y)) * 2.0 + S(vUv + vec2(0.0, -h.y * 2.0)) + S(vUv + vec2(-h.x, -h.y)) * 2.0;
+  o = enc(c / 12.0 + dec(texture(uBase, vUv))); }`;
+const LUM = HEAD + `
+in vec2 vUv; out vec4 o; uniform sampler2D uSrc;
+void main(){ float s = 0.0;
+  for (int i = 0; i < 4; i++) for (int j = 0; j < 4; j++) { vec3 c = dec(texture(uSrc, vUv + (vec2(i, j) - 1.5) / 64.0)); s += dot(c, vec3(0.2126, 0.7152, 0.0722)); }
+  float l = log2(s / 16.0 + 1e-5);
+  o = vec4(clamp((l + 17.0) / 34.0, 0.0, 1.0), 0.0, 0.0, 1.0); }`;
+const FIN = HEAD + `
+in vec2 vUv; out vec4 o; uniform sampler2D uHdr, uBloom; uniform float uExp, uComp, uLref;
+vec3 aces(vec3 x){ return clamp((x * (2.51 * x + 0.03)) / (x * (2.43 * x + 0.59) + 0.14), 0.0, 1.0); }
+void main(){
+  vec3 c = dec(texture(uHdr, vUv)) * uExp + dec(texture(uBloom, vUv)) * 0.25;
+  if (uComp > 0.5) {
+    // whole-sky view while falling: squeeze a range of about a thousand to one into the screen, keeping every colour
+    vec3 h = dec(texture(uHdr, vUv));
+    float L = dot(h, vec3(0.2126, 0.7152, 0.0722));
+    float Ln = log(1.0 + 1000.0 * L / uLref) / log(1001.0);
+    c = h / max(L, 1e-12) * Ln * 0.9;
+  }
+  c = aces(c);
+  vec2 q = vUv - 0.5; c *= 1.0 - dot(q, q) * 0.35;
+  o = vec4(pow(c, vec3(1.0 / 2.2)), 1.0); }`;
+function compile(type, src){ const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s); if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) { console.error(gl.getShaderInfoLog(s)); window.__shaderError = gl.getShaderInfoLog(s); } return s; }
+function prog(fs){ const p = gl.createProgram(); gl.attachShader(p, compile(gl.VERTEX_SHADER, VS)); gl.attachShader(p, compile(gl.FRAGMENT_SHADER, fs)); gl.bindAttribLocation(p, 0, 'aPos'); gl.linkProgram(p); if (!gl.getProgramParameter(p, gl.LINK_STATUS)) { console.error(gl.getProgramInfoLog(p)); window.__shaderError = gl.getProgramInfoLog(p); } const u = {}; const n = gl.getProgramParameter(p, gl.ACTIVE_UNIFORMS); for (let i = 0; i < n; i++) { const a = gl.getActiveUniform(p, i); u[a.name] = gl.getUniformLocation(p, a.name); } return { p, u }; }
+const P = { rt: prog(RT), down: prog(DOWN), up: prog(UP), fin: prog(FIN), lum: prog(LUM) };
+const quadBuf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, quadBuf); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 3,-1, -1,3]), gl.STATIC_DRAW);
+gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+function mkTarget(w, h, ldr){
+  const t = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, t);
+  if (hasFloat && !ldr) gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA16F, w, h, 0, gl.RGBA, gl.HALF_FLOAT, null);
+  else gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, w, h, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  const f = gl.createFramebuffer(); gl.bindFramebuffer(gl.FRAMEBUFFER, f); gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, t, 0);
+  gl.clearColor(0, 0, 0, 1); gl.clear(gl.COLOR_BUFFER_BIT);
+  return { t, f, w, h };
+}
+function freeTarget(T){ if (T) { gl.deleteTexture(T.t); gl.deleteFramebuffer(T.f); } }
+const lumT = mkTarget(16, 16, true);
+const isTouch = ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
+let acc = [null, null], blooms = [], curScale = 0, accW = 0, accH = 0, ftEma = 0.016, maxScale = 1.0, scaleT = 0;
+const fx = document.getElementById('fx'), fctx = fx.getContext('2d');
+let DPR = 1;
+function resize(){
+  DPR = Math.min(window.devicePixelRatio || 1, 2);
+  canvas.width = Math.floor(innerWidth * DPR); canvas.height = Math.floor(innerHeight * DPR);
+  fx.width = canvas.width; fx.height = canvas.height;
+  curScale = 0; accW = 0; resizeMap(); layoutZoom();
+}
+function ensureTargets(scale){
+  const w = Math.max(32, Math.floor(canvas.width * scale)), h = Math.max(32, Math.floor(canvas.height * scale));
+  if (w === accW && h === accH) return;
+  freeTarget(acc[0]); freeTarget(acc[1]); blooms.forEach(b => freeTarget(b)); if (blooms.ups) blooms.ups.forEach(b => freeTarget(b));
+  acc = [mkTarget(w, h), mkTarget(w, h)]; accW = w; accH = h;
+  blooms = []; let bw = w, bh = h;
+  for (let i = 0; i < 5; i++) { bw = Math.max(2, bw >> 1); bh = Math.max(2, bh >> 1); blooms.push(mkTarget(bw, bh)); }
+  blooms.ups = blooms.map(b => mkTarget(b.w, b.h));
+}
+window.addEventListener('resize', resize);
+
+// ================================================================ state
+const FOV_Y = 74 * Math.PI / 180, FY = 1 / Math.tan(FOV_Y / 2);
+const START_R = 1000, START_EL = 7 * Math.PI / 180;
+const st = {
+  mode: 'orbit',                  // orbit | fp
+  pos: [0, 0, 0], yaw: 0, pitch: 0,
+  orb: { az: 0, el: START_EL, lr: Math.log(START_R), tlr: Math.log(START_R), vaz: 0, vel: 0 },
+  tau: 0, far: 0, tPG: 0, sim: 0,
+  fall: null, ended: false, tornAt: null, crossed: false,
+  probe: null, speed: 1, overview: false, cone: false,
+  exposure: 1, moved: true
+};
+function setOrbitPos(){
+  st.orb.lr = Math.max(st.orb.lr, Math.log(3.2)); st.orb.tlr = Math.max(st.orb.tlr, Math.log(3.2));
+  const o = st.orb, r = Math.exp(o.lr), ce = Math.cos(o.el);
+  st.pos = [r * ce * Math.sin(o.az), r * Math.sin(o.el), r * ce * Math.cos(o.az)];
+  let d = V.norm(V.mul(st.pos, -1));
+  // close in, the shadow fills the view: tilt the camera so its edge and the sky stay on screen
+  const psi = Math.asin(Math.min(1, 3 * Math.sqrt(3) * Math.sqrt(1 - 2 / r) / r)), tilt = Math.max(0, psi - 0.3);
+  if (tilt > 0) { let q = V.sub([0, 1, 0], V.mul(d, d[1])); if (V.len(q) < 1e-6) q = [1, 0, 0]; q = V.norm(q); d = V.norm(V.add(V.mul(d, Math.cos(tilt)), V.mul(q, Math.sin(tilt)))); }
+  // while a probe is falling, swing the view toward it so both it and the hole stay on screen
+  const pi = st.probe && st.probe.img;
+  if (pi) { const a = Math.acos(Math.max(-1, Math.min(1, V.dot(d, pi.dir)))); if (a > 0.35) { const k = Math.min(1, (a - 0.35) / a); d = V.norm(V.add(V.mul(d, 1 - k * 0.55), V.mul(pi.dir, k * 0.55))); } }
+  const ny = Math.atan2(d[0], d[2]), np = Math.asin(d[1]);
+  if (Math.abs(ny - st.yaw) + Math.abs(np - st.pitch) > 1e-5) st.moved = true;
+  st.yaw = ny; st.pitch = np;
+}
+function orbitFromPos(){
+  const r = V.len(st.pos); st.orb.lr = st.orb.tlr = Math.log(r);
+  st.orb.el = Math.asin(st.pos[1] / r); st.orb.az = Math.atan2(st.pos[0], st.pos[2]); st.orb.vaz = st.orb.vel = 0;
+}
+function basis(){
+  if (st.fish) { const f = V.norm(V.mul(st.pos, -1)); let r = V.cross(f, [0, 1, 0]); if (V.len(r) < 1e-6) r = [1, 0, 0]; r = V.norm(r); return { f, r, u: V.cross(r, f) }; }
+  const cp = Math.cos(st.pitch);
+  const f = [cp * Math.sin(st.yaw), Math.sin(st.pitch), cp * Math.cos(st.yaw)];
+  let r = V.cross(f, [0, 1, 0]); if (V.len(r) < 1e-6) r = [1, 0, 0]; r = V.norm(r);
+  return { f, r, u: V.cross(r, f) };
+}
+// camera velocity relative to the rain observer (outward positive along r-hat)
+function camW(){
+  const r = V.len(st.pos), rh = V.mul(st.pos, 1 / r);
+  if (st.fall) return V.mul(rh, PH.wFall(st.fall.e, r));
+  return V.mul(rh, Math.sqrt(2 / r));
+}
+function reset(){
+  if (st.fall && st.fall.autoFish && !st.fall.userFish) st.fish = false;
+  st.mode = 'orbit'; st.orb = { az: 0, el: START_EL, lr: Math.log(START_R), tlr: Math.log(START_R), vaz: 0, vel: 0 };
+  setOrbitPos(); st.tau = st.far = st.tPG = 0; st.fall = null; st.exposure = 1; st.meanLum = st.hiLum = st.maxLum = 0; st.ended = false; st.tornAt = null; st.crossed = false; st.probe = null;
+  hist.length = 0; laser = null; particles = null; st.moved = true; labelCache = null;
+  document.getElementById('endMsg').style.display = 'none'; $('cap').style.opacity = 0; st.tornT = 0; $('miniBox').style.display = 'none';
+  if (snd) { snd.master.gain.cancelScheduledValues(AC.currentTime); snd.master.gain.setTargetAtTime(soundOn ? 0.8 : 0, AC.currentTime, 0.2); snd.tg.gain.setTargetAtTime(0, AC.currentTime, 0.1); }
+  updateModeUI();
+}
+const hist = [];
+
+// ================================================================ UI wiring
+const $ = id => document.getElementById(id);
+function cap(html, ms){ return; const el = $('cap'); el.innerHTML = html; el.style.opacity = 1; clearTimeout(cap.t); cap.t = setTimeout(() => { el.style.opacity = 0; }, ms || 7000); }
+function toast(html, ms){ const el = $('info'); el.innerHTML = html; el.style.opacity = 1; clearTimeout(toast.t); toast.t = setTimeout(() => { el.style.opacity = 0; }, ms || 4500); }
+function updateModeUI(){
+  $('mOrbit').classList.toggle('on', st.mode === 'orbit' && !st.fall);
+  $('mFP').classList.toggle('on', st.mode === 'fp' && !st.fall);
+  $('mMap').classList.toggle('on', st.overview);
+  $('mCone').classList.toggle('on', st.cone);
+  $('mFish').classList.toggle('on', !!st.fish);
+  const narrow = innerWidth < 520;
+  $('zoom').style.display = (st.mode === 'orbit' && !st.fall && !st.overview && !(narrow && st.cone)) ? 'block' : 'none';
+  $('acts').style.display = (narrow && st.cone) ? 'none' : 'flex';
+  $('joy').style.display = (isTouch && st.mode === 'fp' && !st.fall) ? 'block' : 'none';
+  $('map').style.display = st.overview ? 'block' : 'none';
+  $('cone').style.display = st.cone ? 'block' : 'none';
+  $('bodyBox').style.display = 'none';
+  $('hint').style.display = 'block'; $('hint').style.opacity = 1; clearTimeout(updateModeUI.t); clearTimeout(updateModeUI.t2); updateModeUI.t = setTimeout(() => { $('hint').style.opacity = 0; updateModeUI.t2 = setTimeout(() => { $('hint').style.display = 'none'; }, 1000); }, 6000);
+  $('fallBtn').style.display = st.fall ? 'none' : 'inline-block';
+  $('probeBtn').style.display = st.fall ? 'none' : 'inline-block';
+  $('hint').textContent = st.fish ? 'All-sky. Centre: toward the hole. Rim: directly behind you.' : st.fall ? 'Free fall. Drag to look around.' :
+    st.mode === 'orbit' ? 'Drag to orbit. Scroll or pinch to zoom. Tap to fire a laser.' :
+    (isTouch ? 'Use the pad to move, swipe to look. Tap to fire a laser.' : 'W/S move, A/D strafe, drag to look. Click to fire a laser.');
+  if (st.overview) resizeMap();
+  if (st.cone) resizeCone();
+}
+$('mOrbit').onclick = () => { if (st.fall) return; if (st.mode !== 'orbit') { orbitFromPos(); st.mode = 'orbit'; setOrbitPos(); st.moved = true; } updateModeUI(); };
+$('mFP').onclick = () => { if (st.fall) return; st.mode = 'fp'; updateModeUI(); };
+$('mMap').onclick = () => { st.overview = !st.overview; updateModeUI(); };
+$('mCone').onclick = () => { st.cone = !st.cone; updateModeUI(); };
+$('mFish').onclick = () => { st.fish = !st.fish; if (st.fall) st.fall.userFish = true; st.moved = true; labelCache = null; updateModeUI(); };
+$('menuBtn').onclick = e => { e.stopPropagation(); const m = $('menu'); m.style.display = m.style.display === 'block' ? 'none' : 'block'; };
+window.addEventListener('pointerdown', e => { const m = $('menu'); if (m.style.display === 'block' && !m.contains(e.target) && e.target !== $('menuBtn')) m.style.display = 'none'; });
+$('reset').onclick = reset; $('endReset').onclick = reset;
+$('bhBtn').onclick = () => { bhi = (bhi + 1) % BHS.length; st.tornAt = null; updateModeUI(); toast(BHS[bhi].name, 3000); };
+$('speedBtn').onclick = () => { st.speed = st.speed === 1 ? 4 : st.speed === 4 ? 0.25 : 1; $('speedBtn').textContent = 'Speed ×' + st.speed; };
+$('fallBtn').onclick = startFall;
+$('probeBtn').onclick = dropProbe;
+
+// zoom slider (orbit mode), log scale from 2.05 M to 2000 M
+const HOVER_MIN = 3.2, ZMIN = Math.log(HOVER_MIN), ZMAX = Math.log(2000);
+const zoomEl = $('zoom'), zknob = zoomEl.querySelector('.knob');
+function layoutZoom(){
+  zoomEl.querySelectorAll('.tick').forEach(t => t.remove());
+  const H = zoomEl.clientHeight - 28;
+  [[1000, '1000M'], [100, '100M'], [22, 'Disk edge 22M'], [6, 'Disk inner 6M'], [3.2, 'Photon sphere 3M']].forEach(([r, t]) => {
+    const d = document.createElement('div'); d.className = 'tick'; d.textContent = t;
+    d.style.top = (14 + (1 - (Math.log(r) - ZMIN) / (ZMAX - ZMIN)) * H) + 'px'; zoomEl.appendChild(d);
+  });
+}
+function zoomKnob(){ const H = zoomEl.clientHeight - 28; zknob.style.top = (14 + (1 - (st.orb.lr - ZMIN) / (ZMAX - ZMIN)) * H) + 'px'; }
+let zDrag = false;
+function zoomAt(y){ const r = zoomEl.getBoundingClientRect(); const f = 1 - Math.min(1, Math.max(0, (y - r.top - 14) / (r.height - 28))); st.orb.tlr = ZMIN + f * (ZMAX - ZMIN); }
+zoomEl.addEventListener('pointerdown', e => { zDrag = true; zoomEl.setPointerCapture(e.pointerId); zoomAt(e.clientY); e.stopPropagation(); });
+zoomEl.addEventListener('pointermove', e => { if (zDrag) zoomAt(e.clientY); });
+zoomEl.addEventListener('pointerup', () => { zDrag = false; });
+
+// ================================================================ input on the main canvas
+const keys = {};
+window.addEventListener('keydown', e => { keys[e.key.toLowerCase()] = true; if (e.key === '`' || (e.shiftKey && e.key.toLowerCase() === 'd')) { const el = $('dbg'); el.style.display = el.style.display === 'block' ? 'none' : 'block'; } });
+window.addEventListener('keyup', e => { keys[e.key.toLowerCase()] = false; });
+window.addEventListener('wheel', e => { if (e.target.closest && e.target.closest('#verify')) return; if (st.mode === 'orbit' && !st.fall) st.orb.tlr = Math.min(ZMAX, Math.max(ZMIN, st.orb.tlr + Math.sign(e.deltaY) * 0.12)); e.preventDefault(); }, { passive: false });
+const joyEl = $('joy'), jknob = $('knob');
+const joy = { id: null, dx: 0, dy: 0 };
+const ptrs = new Map(); let pinch0 = 0, pinchLr = 0, tapInfo = null;
+function inJoy(x, y){ if (joyEl.style.display !== 'block') return false; const r = joyEl.getBoundingClientRect(); return x < r.right + 25 && y > r.top - 25; }
+canvas.addEventListener('pointerdown', e => {
+  ensureAudio();
+  canvas.setPointerCapture(e.pointerId);
+  if (joy.id === null && inJoy(e.clientX, e.clientY)) { joy.id = e.pointerId; joyMove(e.clientX, e.clientY); return; }
+  ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY, sx: e.clientX, sy: e.clientY, t: performance.now(), moved: 0 });
+  if (ptrs.size === 2) { const a = [...ptrs.values()]; pinch0 = Math.hypot(a[0].x - a[1].x, a[0].y - a[1].y); pinchLr = st.orb.tlr; }
+});
+function joyMove(x, y){ const r = joyEl.getBoundingClientRect(); let dx = (x - r.left - r.width / 2) / 55, dy = (y - r.top - r.height / 2) / 55; const m = Math.hypot(dx, dy); if (m > 1) { dx /= m; dy /= m; } joy.dx = dx; joy.dy = dy; jknob.style.transform = 'translate(' + dx * 36 + 'px,' + dy * 36 + 'px)'; }
+canvas.addEventListener('pointermove', e => {
+  if (e.pointerId === joy.id) { joyMove(e.clientX, e.clientY); return; }
+  const p = ptrs.get(e.pointerId); if (!p) return;
+  const dx = e.clientX - p.x, dy = e.clientY - p.y; p.x = e.clientX; p.y = e.clientY; p.moved += Math.abs(dx) + Math.abs(dy);
+  if (ptrs.size === 2) {
+    const a = [...ptrs.values()]; const d = Math.hypot(a[0].x - a[1].x, a[0].y - a[1].y);
+    if (st.mode === 'orbit' && !st.fall && pinch0 > 0) st.orb.tlr = Math.min(ZMAX, Math.max(ZMIN, pinchLr - Math.log(d / pinch0) * 1.6));
+    return;
+  }
+  if (st.mode === 'orbit' && !st.fall) { st.orb.vaz = -dx * 0.006; st.orb.vel = dy * 0.006; st.orb.az += st.orb.vaz; st.orb.el = Math.max(-1.45, Math.min(1.45, st.orb.el + st.orb.vel)); }
+  else { if (st.fall && p.moved > 6) st.fall.autoLook = false; const k = 0.0036; st.yaw -= dx * k; st.pitch = Math.max(-1.5, Math.min(1.5, st.pitch - dy * k)); }
+  if (p.moved > 2) st.moved = true;
+});
+function endPtr(e){
+  if (e.pointerId === joy.id) { joy.id = null; joy.dx = joy.dy = 0; jknob.style.transform = ''; return; }
+  const p = ptrs.get(e.pointerId); if (!p) return;
+  ptrs.delete(e.pointerId);
+  if (p.moved < 8 && performance.now() - p.t < 350 && ptrs.size === 0) fireLaser(p.sx, p.sy);
+}
+canvas.addEventListener('pointerup', endPtr); canvas.addEventListener('pointercancel', endPtr);
+
+// ================================================================ falling
+function startFall(){
+  if (st.fall || st.ended) return;
+  const r0 = V.len(st.pos); if (r0 < 2.5) return;
+  if (st.mode === 'orbit') { st.mode = 'fp'; }
+  st.fall = { r0, dir: V.norm(st.pos), e: Math.sqrt(1 - 2 / r0), C: Math.sqrt(r0 * r0 * r0 / 2), tf: 1e-6, said: {}, pulses: [], autoLook: true, edge: 0.5, edgeT: 0 };
+  { const b = basis(); let q = V.sub(b.u, V.mul(st.fall.dir, V.dot(b.u, st.fall.dir))); if (V.len(q) < 1e-6) q = V.cross(st.fall.dir, [1, 0, 0]); st.fall.side = V.norm(q); }
+  st.fall.total = st.fall.C * Math.PI / 2;
+  particles = makeParticles();
+  updateModeUI();
+  cap('Engine off. Proper time to the centre: ' + fmtT(st.fall.total * Msec()) + '.', 8000);
+}
+function fallEta(tf){ // solve tf/C = eta + sin(eta)cos(eta) for eta in [0, pi/2]
+  const target = tf / st.fall.C; let lo = 0, hi = Math.PI / 2;
+  for (let i = 0; i < 60; i++) { const m = (lo + hi) / 2; if (m + Math.sin(m) * Math.cos(m) < target) lo = m; else hi = m; }
+  return (lo + hi) / 2;
+}
+let particles = null;
+function makeParticles(){ const pts = []; for (let i = 0; i < 16; i++) { const a = i / 16 * Math.PI * 2; pts.push({ x: Math.cos(a), y: Math.sin(a), vx: 0, vy: 0 }); } return pts; }
+// geodesic deviation in the faller's frame: along the radial direction (y) stretch 2M/r^3, sideways (x) squeeze M/r^3
+function stepParticles(dTau, r){
+  if (!particles) return;
+  const n = Math.min(400, Math.max(1, Math.ceil(dTau / (0.05 * Math.pow(r, 1.5))))), h = dTau / n, k = 1 / (r * r * r);
+  for (let s = 0; s < n; s++) for (const p of particles) { p.vy += 2 * k * p.y * h; p.vx -= k * p.x * h; p.x += p.vx * h; p.y += p.vy * h; if (Math.abs(p.y) > 1e6) p.y = Math.sign(p.y) * 1e6; }
+}
+
+// ================================================================ probe
+function dropProbe(){
+  if (st.fall || st.ended) return;
+  if (st.mode !== 'orbit') { orbitFromPos(); st.mode = 'orbit'; }
+  const r0 = V.len(st.pos);
+  const C = Math.sqrt(r0 * r0 * r0 / 2), total = C * Math.PI / 2;
+  st.probe = { r0, dir: V.norm(st.pos), e: Math.sqrt(1 - 2 / r0), C, total, tf: 1e-6, t: st.tPG, every: total / 40, nextBlink: total / 40, blinks: [], seen: [], flash: 0, hist: [], crossed: false, lastSeenInt: null, samp: [], si: 0, seenTau: 0, seenG: 1 };
+  st.orb.taz = st.orb.az + 0.55;   // step aside about 30 degrees around the hole so you watch it from the side
+  st.probeHold = 1.2;              // let it hang a moment while you move away
+  toast('Probe released', 2000);
+}
+function probeR(pr){ const C = pr.C, target = pr.tf / C; let lo = 0, hi = Math.PI / 2; for (let i = 0; i < 50; i++) { const m = (lo + hi) / 2; if (m + Math.sin(m) * Math.cos(m) < target) lo = m; else hi = m; } const eta = (lo + hi) / 2; return pr.r0 * Math.cos(eta) * Math.cos(eta); }
+function stepProbe(dtPG){
+  const pr = st.probe; if (!pr || pr.done) return;
+  let left = dtPG, guard = 0;
+  while (left > 0 && guard++ < 4000) {
+    const r = Math.max(probeR(pr), 0.02);
+    const w = PH.wFall(pr.e, r), gm = 1 / Math.sqrt(1 - w * w);
+    const step = Math.min(left, 0.05 * Math.pow(Math.max(r, 0.3), 1.5) * gm + 1e-9);
+    pr.tf += step / gm; pr.t += step; left -= step;
+    const rs = probeR(pr); if (!pr.samp.length || pr.tf - pr.samp[pr.samp.length - 1].tau > Math.min(pr.total / 800, 0.02 * Math.max(0.05, rs - 1.9))) pr.samp.push({ tau: pr.tf, t: pr.t, r: rs, w: PH.wFall(pr.e, Math.max(rs, 0.02)) });
+    if (pr.tf >= pr.nextBlink && pr.nextBlink < pr.total) {
+      const re = probeR(pr);
+      if (re > 2.0005) pr.blinks.push({ te: pr.t, re, we: PH.wFall(pr.e, re) });
+      pr.nextBlink += pr.every;
+    }
+    if (pr.tf >= pr.total * (1 - 1e-9) || probeR(pr) < 0.03) { pr.done = true; break; }
+  }
+  const r = probeR(pr);
+  if (r < 2 && !pr.crossed) pr.crossed = true;
+  if (pr.hist.length === 0 || st.tPG - pr.hist[pr.hist.length - 1].t > 0.02 * Math.max(1, V.len(st.pos) / 10)) pr.hist.push({ r, t: pr.t });
+  if (pr.hist.length > 600) pr.hist.shift();
+}
+function probeRAt(pr, t){
+  const sm = pr.samp; if (!sm.length || t <= sm[0].t) return { r: pr.r0, tau: 0, w: PH.wFall(pr.e, pr.r0) };
+  if (t >= sm[sm.length - 1].t) { const l = sm[sm.length - 1]; return { r: l.r, tau: l.tau, w: l.w }; }
+  let lo = 0, hi = sm.length - 1; while (hi - lo > 1) { const m = (lo + hi) >> 1; if (sm[m].t < t) lo = m; else hi = m; }
+  const a = sm[lo], b = sm[hi], f = (t - a.t) / (b.t - a.t);
+  return { r: a.r + (b.r - a.r) * f, tau: a.tau + (b.tau - a.tau) * f, w: a.w + (b.w - a.w) * f };
+}
+function probeImage(){
+  const pr = st.probe; if (!pr) return null;
+  const xc = st.pos, e1 = V.norm(xc);
+  let e2 = V.sub(pr.dir, V.mul(e1, V.dot(pr.dir, e1))); if (V.len(e2) < 1e-9) return null; e2 = V.norm(e2);
+  const phiT = Math.acos(Math.max(-1, Math.min(1, V.dot(e1, pr.dir))));
+  const w = camW();
+  const shoot = (al) => {
+    const d = V.add(V.mul(e1, -Math.cos(al)), V.mul(e2, Math.sin(al)));
+    let x = xc.slice(), p = PH.boost(V.mul(d, -1), w), t = 0, ph = 0;
+    for (let i = 0; i < 2500; i++) {
+      const r = V.len(x), k1 = PH.deriv(x, p, -1), drds = V.dot(x, k1[0]) / r;
+      if ((r > 1.9 && r < 2.1 && Math.abs(drds) < 0.03) || r < 0.05) return { r: 1.5, t, d };
+      if (r > Math.max(V.len(xc) * 3, 80) && drds > 0) return { r: 1e9, t, d };
+      const h = Math.min(0.04 * r, 0.5 + 0.02 * r);
+      const k2 = PH.deriv(V.add(x, V.mul(k1[0], h / 2)), V.add(p, V.mul(k1[1], h / 2)), -1);
+      const k3 = PH.deriv(V.add(x, V.mul(k2[0], h / 2)), V.add(p, V.mul(k2[1], h / 2)), -1);
+      const k4 = PH.deriv(V.add(x, V.mul(k3[0], h)), V.add(p, V.mul(k3[1], h)), -1);
+      const xn = V.add(x, V.mul(V.add(V.add(k1[0], V.mul(k2[0], 2)), V.add(V.mul(k3[0], 2), k4[0])), h / 6));
+      const pn = V.add(p, V.mul(V.add(V.add(k1[1], V.mul(k2[1], 2)), V.add(V.mul(k3[1], 2), k4[1])), h / 6));
+      const phn = Math.atan2(V.dot(xn, e2), V.dot(xn, e1));
+      if (phn >= phiT && ph < phiT) { const f = (phiT - ph) / (phn - ph); const xq = V.add(x, V.mul(V.sub(xn, x), f)); return { r: V.len(xq), t: t + h * f, d, p: V.add(p, V.mul(V.sub(pn, p), f)), x: xq }; }
+      x = xn; p = pn; t += h; ph = phn;
+    }
+    return { r: 1e9, t, d };
+  };
+  const f = (al) => { const s = shoot(al); const pp = probeRAt(pr, st.tPG - s.t); return { v: Math.max(s.r, 2) - Math.max(pp.r, 2.00001), s, pp }; };
+  let lo = 1e-5, hi = Math.PI * 0.95, fl = f(lo), fh = f(hi);
+  if (!(fl.v < 0 && fh.v > 0)) return null;
+  let best = fh;
+  for (let i = 0; i < 30; i++) { const m = Math.sqrt(lo * hi), fm = f(m); if (fm.v > 0) { hi = m; best = fm; } else lo = m; }
+  if (!best.s.p) return null;
+  // frequency the probe's light arrives with: you see it at 1, it emitted it at w_em
+  const rh = V.norm(best.s.x), pl = V.len(best.s.p), gp = 1 / Math.sqrt(1 - best.pp.w * best.pp.w);
+  const wem = gp * pl * (1 - best.pp.w * V.dot(rh, V.mul(best.s.p, 1 / pl)));
+  return { dir: best.s.d, g: 1 / wem, tau: best.pp.tau, r: best.pp.r };
+}
+function probeArrivals(){
+  const pi = st.probe && !st.fall && !(st.probe.faded && performance.now() - st.probe.fadedAt > 1600) ? probeImage() : null;
+  if (st.probe) { st.probe.img = pi; if (pi) { st.probe.seenTau = pi.tau; st.probe.seenG = pi.g; } }
+  return;
+  const pr = st.probe; if (!pr || st.fall) return;
+  const ro = V.len(st.pos), bo = Math.sqrt(2 / ro), wo = bo, go = 1 / Math.sqrt(1 - wo * wo);
+  while (pr.si < pr.samp.length) {
+    const sm = pr.samp[pr.si]; if (sm.r <= 2.00001) break;
+    const ta = sm.t + PH.Fout(ro) - PH.Fout(sm.r); if (ta > st.tPG) break;
+    const be = Math.sqrt(2 / sm.r), ge = 1 / Math.sqrt(1 - sm.w * sm.w);
+    pr.seenTau = sm.tau; pr.seenG = (go * (1 - wo) / (1 - bo)) / (ge * (1 - sm.w) / (1 - be)); pr.si++;
+  }
+  for (const b of pr.blinks) {
+    if (b.shown) continue;
+    const ta = b.te + PH.Fout(ro) - PH.Fout(b.re);
+    if (st.tPG >= ta) {
+      b.shown = true;
+      const be = Math.sqrt(2 / b.re), ge = 1 / Math.sqrt(1 - b.we * b.we);
+      const g = (go * (1 - wo) / (1 - bo)) / (ge * (1 - b.we) / (1 - be));
+      pr.flash = performance.now(); pr.flashG = g;
+      if (pr.lastArr != null) pr.lastSeenInt = (ta - pr.lastArr) / go;
+      pr.lastArr = ta;
+    }
+  }
+}
+
+// ================================================================ laser
+let laser = null;
+function screenDir(sx, sy){
+  const b = basis();
+  const S0 = Math.min(innerWidth, innerHeight); const ux = (sx * 2 - innerWidth) / S0, uy = -(sy * 2 - innerHeight) / S0;
+  return V.norm(V.add(V.add(V.mul(b.f, FY), V.mul(b.r, ux)), V.mul(b.u, uy)));
+}
+function fireLaser(sx, sy){
+  if (st.ended) return;
+  const d = screenDir(sx, sy);
+  const p0 = PH.boost(d, camW());
+  const x0 = st.pos.slice();
+  const dx0 = PH.deriv(x0, p0, 1)[0];
+  const e1 = V.norm(x0); let n = V.cross(x0, dx0); if (V.len(n) < 1e-9) n = V.cross(e1, Math.abs(e1[1]) < 0.9 ? [0, 1, 0] : [1, 0, 0]); n = V.norm(n);
+  const e2 = V.cross(n, e1);
+  const res = PH.trace(x0, p0, 1, { path: true, rEsc: Math.max(V.len(x0) * 3, 120), maxSteps: 6000, plane: [e1, e2] });
+  laser = { pts: res.path.map(q => [V.dot(q, e1), V.dot(q, e2)]), e1, e2, n, end: res.end, sweep: res.sweep, minR: res.minR, born: performance.now() };
+  const where = { sky: 'escaped to infinity', hole: 'captured at the horizon', disk: 'hit the accretion disk', center: 'fell to the centre', lost: 'trapped near the photon sphere' }[res.end];
+  const turns = res.sweep / (2 * Math.PI);
+  let txt = (turns >= 1 ? turns.toFixed(1) + ' orbits, then ' : 'Light ') + where;
+
+  toast(txt, 6000);
+  markAt = { x: sx, y: sy, t: performance.now() };
+}
+let markAt = null;
+
+// ================================================================ labels on the lensed image
+let labelCache = null, labelTime = 0;
+function computeLabels(){
+  const r = V.len(st.pos); if (r > 400 || r < 2.02) { labelCache = null; return; }
+  const b = basis(), c = V.mul(V.norm(st.pos), -1);
+  if (V.dot(c, b.f) < 0.2) { labelCache = null; return; }
+  let q = V.sub(V.mul(b.u, -1), V.mul(c, V.dot(V.mul(b.u, -1), c)));
+  if (V.len(q) < 1e-6) q = V.cross(c, [1, 0, 0]); q = V.norm(q);
+  const w = camW();
+  const shoot = (a, disk) => { const d = V.add(V.mul(c, Math.cos(a)), V.mul(q, Math.sin(a))); return PH.trace(st.pos, PH.boost(V.mul(d, -1), w), -1, { disk, maxSteps: 1500 }); };
+  let lo = 0, hi = Math.PI * 0.995;
+  for (let i = 0; i < 30; i++) { const m = (lo + hi) / 2; if (shoot(m, false).end === 'hole') lo = m; else hi = m; }
+  const aSh = (lo + hi) / 2;
+  const out = { ring: V.add(V.mul(c, Math.cos(aSh)), V.mul(q, Math.sin(aSh))) };
+  // inner disk edge: scan from wide angles inward for the first ray whose disk hit drops below 6 M
+  let prevA = null, found = null;
+  for (let k = 0; k <= 40; k++) {
+    const a = Math.min(Math.PI * 0.6, aSh + 1.2) - k * (Math.min(Math.PI * 0.6, aSh + 1.2) - aSh) / 40;
+    const t = shoot(a, true);
+    const inside = t.end === 'disk' ? V.len(t.hit) < 7 : true;
+    if (inside && prevA !== null) { found = [a, prevA]; break; }
+    prevA = a;
+  }
+  if (found) {
+    let l = found[0], h = found[1];
+    for (let i = 0; i < 18; i++) { const m = (l + h) / 2; const t = shoot(m, true); if (t.end === 'disk' && V.len(t.hit) >= 7) h = m; else l = m; }
+    out.disk = V.add(V.mul(c, Math.cos(h)), V.mul(q, Math.sin(h)));
+  }
+  labelCache = out;
+}
+function project(d){
+  const b = basis(); const z = V.dot(d, b.f); if (z <= 0.01) return null;
+  const x = V.dot(d, b.r) / z * FY, y = V.dot(d, b.u) / z * FY;
+  const S0 = Math.min(innerWidth, innerHeight); return [(x * S0 / 2 + innerWidth / 2) * DPR, (-y * S0 / 2 + innerHeight / 2) * DPR];
+}
+
+// ================================================================ overlay: labels, arrow, probe, particles
+function drawFx(){
+  const W = fx.width, H = fx.height, c = fctx, d = DPR;
+  c.clearRect(0, 0, W, H);
+  c.font = 11.5 * d + 'px -apple-system, sans-serif';
+  const toC = V.mul(V.norm(st.pos), -1);
+  // labels
+  if (labelCache && !st.ended && !st.fish) {
+    const lab = (dir, txt, dx, dy) => { const p = project(dir); if (!p) return; c.strokeStyle = 'rgba(190,205,235,.6)'; c.lineWidth = 0.8 * d; c.setLineDash([3 * d, 3 * d]); c.beginPath(); c.moveTo(p[0], p[1]); c.lineTo(p[0] + dx * d, p[1] + dy * d); c.stroke(); c.setLineDash([]); c.fillStyle = 'rgba(225,232,250,.85)'; c.fillText(txt, p[0] + dx * d + (dx > 0 ? 4 : -c.measureText(txt).width - 4) * 1, p[1] + dy * d + 4 * d); };
+    if (labelCache.ring) lab(labelCache.ring, 'Photon ring', -60, 40);
+    if (labelCache.disk) lab(labelCache.disk, 'Disk inner edge', -60, -30);
+  }
+  // arrow toward the hole when it is off screen (first person)
+  if (!st.ended && st.mode === 'fp' && !st.fall && !st.fish) {
+    const p = project(toC);
+    const inView = p && p[0] > 0 && p[0] < W && p[1] > 0 && p[1] < H;
+    if (!inView) {
+      const b = basis(); const ax = V.dot(toC, b.r), ay = V.dot(toC, b.u);
+      const ang = Math.atan2(-ay, ax); const R = Math.min(W, H) * 0.42;
+      const cx = W / 2 + Math.cos(ang) * R, cy = H / 2 + Math.sin(ang) * R;
+      c.save(); c.translate(cx, cy); c.rotate(ang); c.fillStyle = 'rgba(255,200,150,.85)';
+      c.beginPath(); c.moveTo(16 * d, 0); c.lineTo(-8 * d, -10 * d); c.lineTo(-8 * d, 10 * d); c.closePath(); c.fill(); c.restore();
+      c.fillStyle = 'rgba(255,220,190,.9)'; c.fillText('Black hole this way', cx - 30 * d, cy + 26 * d);
+    }
+  }
+  const pr = st.probe;
+  const fadeK = pr && pr.faded ? Math.max(0, 1 - (performance.now() - (pr.fadedAt || 0)) / 1500) : 1;
+  if (pr && pr.img && !st.fall && !st.ended && !st.fish && fadeK > 0) {
+    const p = project(pr.img.dir);
+    if (p) {
+      const g = pr.img.g, T = Math.max(1000, 9000 * g), I = Math.min(1, Math.pow(Math.max(g, 0), 2.5)) * fadeK, rad = (6 + 8 * Math.min(1, g)) * d;
+      // a small solid body: lit from one side, tinted by the Doppler shift, dimming as its light is redshifted
+      const vis = Math.max(I, 0.35 * Math.min(1, g * 4)) * fadeK, R0 = 7.5 * d, col = kelvin(T);
+      if (vis > 0.01) {
+        const glow = c.createRadialGradient(p[0], p[1], 0, p[0], p[1], R0 * 3.2);
+        glow.addColorStop(0, 'rgba(' + col + ',' + (0.55 * I) + ')'); glow.addColorStop(1, 'rgba(' + col + ',0)');
+        c.fillStyle = glow; c.beginPath(); c.arc(p[0], p[1], R0 * 3.2, 0, 7); c.fill();
+        c.fillStyle = 'rgba(0,0,0,' + 0.55 * vis + ')'; c.beginPath(); c.arc(p[0], p[1], R0 + 1.5 * d, 0, 7); c.fill();
+        const body = c.createRadialGradient(p[0] - R0 * 0.35, p[1] - R0 * 0.4, R0 * 0.1, p[0], p[1], R0);
+        body.addColorStop(0, 'rgba(255,255,255,' + vis + ')'); body.addColorStop(0.35, 'rgba(' + col + ',' + vis + ')'); body.addColorStop(1, 'rgba(' + col.split(',').map(v => Math.round(v * 0.35)).join(',') + ',' + vis + ')');
+        c.fillStyle = body; c.beginPath(); c.arc(p[0], p[1], R0, 0, 7); c.fill();
+      }
+    }
+  }
+  if (st.fall) {
+    const ta = tidal(V.len(st.pos)), k = Math.min(1, Math.max(0, (Math.log10(ta) - Math.log10(TEAR) + 3) / 3));
+    const tearAge = window.__tA != null ? window.__tA : st.tornAt ? (performance.now() - (st.tearT || 0)) / 1000 : 99;
+    if (k > 0.01 || tearAge < 1.2) {
+      const g = c.createRadialGradient(W / 2, H / 2, Math.min(W, H) * (0.55 - 0.3 * k), W / 2, H / 2, Math.max(W, H) * 0.75);
+      g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(' + (tearAge < 1.2 ? '120,10,0' : '0,0,0') + ',' + (0.35 + 0.6 * k) + ')');
+      c.fillStyle = g; c.fillRect(0, 0, W, H);
+    }
+    if (tearAge < 2.4) {   // the moment the body comes apart: one word, like a warning light
+      const a = tearAge < 0.15 ? tearAge / 0.15 : Math.max(0, 1 - (tearAge - 1.4) / 1.0);
+      const fs = Math.round(Math.min(W, H) * 0.085);
+      c.save(); c.textAlign = 'center'; c.textBaseline = 'middle';
+      c.font = '800 ' + fs + 'px -apple-system, Helvetica Neue, Arial, sans-serif';
+      c.shadowColor = 'rgba(255,40,20,' + (0.9 * a) + ')'; c.shadowBlur = fs * 0.5;
+      c.fillStyle = 'rgba(255,60,40,' + a + ')';
+      c.fillText('SPAGHETTIFIED', W / 2 + (tearAge < 0.6 ? (Math.random() - 0.5) * 6 * d : 0), H * 0.42);
+      c.restore();
+    }
+    const sh = (tearAge < 0.8 ? 14 * (1 - tearAge / 0.8) : 0) + 4 * k * k;
+    canvas.style.transform = sh > 0.2 ? 'translate(' + ((Math.random() - 0.5) * sh).toFixed(1) + 'px,' + ((Math.random() - 0.5) * sh).toFixed(1) + 'px)' : '';
+  } else if (canvas.style.transform) canvas.style.transform = '';
+  if (st.fish) { const S0 = Math.min(W, H); c.strokeStyle = 'rgba(255,255,255,.18)'; c.lineWidth = 1 * d; c.beginPath(); c.arc(W / 2, H / 2, S0 / 2 * 0.92, 0, 7); c.stroke(); c.fillStyle = 'rgba(220,226,250,.55)'; c.font = 11 * d + 'px -apple-system, sans-serif'; c.textAlign = 'center';  c.textAlign = 'left'; }
+  if (markAt) { const age = (performance.now() - markAt.t) / 1000; if (age < 1.2) { c.strokeStyle = 'rgba(127,227,255,' + (1 - age / 1.2) + ')'; c.lineWidth = 1.5 * d; c.beginPath(); c.arc(markAt.x * d, markAt.y * d, 10 * d, 0, 7); c.stroke(); } }
+}
+function kelvin(T){ T = Math.min(40000, Math.max(1000, T)) / 100; const r = T <= 66 ? 255 : 329.7 * Math.pow(T - 60, -0.1332); const g = T <= 66 ? 99.47 * Math.log(T) - 161.1 : 288.1 * Math.pow(T - 60, -0.0755); const b = T >= 66 ? 255 : T <= 19 ? 0 : 138.5 * Math.log(T - 10) - 305; return [r, g, b].map(v => Math.max(0, Math.min(255, v | 0))).join(','); }
+
+// ================================================================ overview map
+const map = $('map'), mctx = map.getContext('2d');
+function resizeMap(){ map.width = innerWidth * DPR; map.height = innerHeight * DPR; }
+function properDist(r){ return Math.sqrt(r * (r - 2)) + 2 * Math.log(Math.sqrt(r) + Math.sqrt(r - 2)); }
+function drawMap(){
+  if (!st.overview) return;
+  const W = map.width, H = map.height, ctx = mctx, d = DPR;
+  ctx.clearRect(0, 0, W, H);
+  const b = basis(), rc = V.len(st.pos);
+  let e1, e2, n;
+  if (laser) { e1 = laser.e1; e2 = laser.e2; n = laser.n; }
+  else { e1 = V.norm(st.pos); n = V.cross(st.pos, b.f); if (V.len(n) < 1e-6) n = V.cross(e1, Math.abs(e1[1]) < 0.9 ? [0, 1, 0] : [1, 0, 0]); n = V.norm(n); e2 = V.cross(n, e1); }
+  let span = Math.max(rc * 1.6, 7);
+  if (laser) { let m = 0; for (const p of laser.pts) m = Math.max(m, Math.min(Math.hypot(p[0], p[1]), rc * 2.2)); span = Math.max(span, m * 1.05); }
+  const cx = W / 2, cy = H * 0.46, S = Math.min(W, H) * 0.4 / span;
+  const P = (a, c) => [cx + a * S, cy - c * S];
+  ctx.lineCap = 'round';
+  const ln = V.cross(n, [0, 1, 0]);
+  if (V.len(ln) > 0.02) {
+    const l = V.norm(ln), la = V.dot(l, e1), lb = V.dot(l, e2);
+    ctx.strokeStyle = 'rgba(255,160,70,.85)'; ctx.lineWidth = Math.min(6 * d, Math.max(2.5 * d, 0.9 * S));
+    for (const s of [1, -1]) { const a = P(s * la * 6, s * lb * 6), c2 = P(s * la * 22, s * lb * 22); ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(c2[0], c2[1]); ctx.stroke(); }
+  } else { ctx.fillStyle = 'rgba(255,150,60,.28)'; ctx.beginPath(); ctx.arc(cx, cy, 22 * S, 0, 7); ctx.arc(cx, cy, 6 * S, 0, 7, true); ctx.fill(); }
+  // measuring circles: geometry vs ruler
+  let measure = null;
+  if (!st.fall && rc > 2.3) {
+    const ra = Math.max(2.05, rc * 0.7), rb = rc;
+    ctx.setLineDash([2 * d, 5 * d]); ctx.strokeStyle = 'rgba(140,240,210,.55)'; ctx.lineWidth = 1 * d;
+    for (const rr of [ra, rb]) { ctx.beginPath(); ctx.arc(cx, cy, rr * S, 0, 7); ctx.stroke(); }
+    ctx.setLineDash([]);
+    measure = { ra, rb, flat: rb - ra, ruler: properDist(rb) - properDist(ra) };
+    const a1 = P(ra, 0), a2 = P(rb, 0); ctx.strokeStyle = 'rgba(140,240,210,.9)'; ctx.lineWidth = 2 * d; ctx.beginPath(); ctx.moveTo(a1[0], a1[1] + 8 * d); ctx.lineTo(a2[0], a2[1] + 8 * d); ctx.stroke();
+  }
+  ctx.setLineDash([4 * d, 4 * d]); ctx.strokeStyle = 'rgba(255,255,255,.45)'; ctx.lineWidth = 1 * d;
+  ctx.beginPath(); ctx.arc(cx, cy, Math.max(3 * S, 1.5 * d), 0, 7); ctx.stroke(); ctx.setLineDash([]);
+  ctx.fillStyle = '#000'; ctx.strokeStyle = 'rgba(255,255,255,.75)';
+  ctx.beginPath(); ctx.arc(cx, cy, Math.max(2 * S, 1.5 * d), 0, 7); ctx.fill(); ctx.stroke();
+  if (laser) {
+    const age = (performance.now() - laser.born) / 1000, show = Math.min(1, age / 1.2);
+    const N = Math.min(laser.pts.length, Math.max(2, Math.floor(laser.pts.length * show)));
+    ctx.strokeStyle = 'rgba(110,225,255,.95)'; ctx.lineWidth = 1.8 * d; ctx.shadowColor = '#38c8ff'; ctx.shadowBlur = 8 * d;
+    ctx.beginPath(); for (let i = 0; i < N; i++) { const q = P(laser.pts[i][0], laser.pts[i][1]); if (i) ctx.lineTo(q[0], q[1]); else ctx.moveTo(q[0], q[1]); } ctx.stroke(); ctx.shadowBlur = 0;
+  }
+  if (st.probe) { const r = probeR(st.probe), dd = st.probe.dir; const q = P(V.dot(dd, e1) * r, V.dot(dd, e2) * r); ctx.fillStyle = '#9fd4ff'; ctx.beginPath(); ctx.arc(q[0], q[1], 3 * d, 0, 7); ctx.fill(); ctx.font = 11 * d + 'px sans-serif'; ctx.fillText('Probe', q[0] + 5 * d, q[1] + 14 * d); }
+  if (st.fall) for (const q of st.fall.pulses) { const dd = st.fall.dir; const pq = P(V.dot(dd, e1) * q.r, V.dot(dd, e2) * q.r); ctx.fillStyle = '#5fe3ff'; ctx.beginPath(); ctx.arc(pq[0] + (q.k - 2) * 8 * d, pq[1], 3.5 * d, 0, 7); ctx.fill(); }
+  const me = P(V.dot(st.pos, e1), V.dot(st.pos, e2));
+  const fa = V.dot(b.f, e1), fb = V.dot(b.f, e2), fl = Math.hypot(fa, fb) || 1;
+  ctx.strokeStyle = 'rgba(255,255,255,.8)'; ctx.lineWidth = 1.2 * d;
+  ctx.beginPath(); ctx.moveTo(me[0], me[1]); ctx.lineTo(me[0] + fa / fl * 16 * d, me[1] - fb / fl * 16 * d); ctx.stroke();
+  ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(me[0], me[1], 3.5 * d, 0, 7); ctx.fill();
+  ctx.font = 13 * d + 'px -apple-system, sans-serif'; ctx.fillStyle = 'rgba(225,230,250,.85)';
+  ctx.fillText('You', me[0] + 6 * d, me[1] - 6 * d);
+  if (3 * S > 18 * d) { const lab = (t, r, a) => { const q = P(r * Math.cos(a), r * Math.sin(a)); ctx.fillText(t, q[0] + 4 * d, q[1]); }; lab('Photon sphere', 3.3, 0.8); lab('Horizon', 2.3, -0.9); }
+  let y = 34 * d; const L = (t, col) => { ctx.fillStyle = col || 'rgba(225,230,250,.7)'; let line = ''; for (const ch of t) { if (ctx.measureText(line + ch).width > W - 140 * d) { ctx.fillText(line, 16 * d, y); y += 18 * d; line = ''; } line += ch; } ctx.fillText(line, 16 * d, y); y += 22 * d; };
+  L(laser ? 'Plane of the laser path' : 'Plane of your line of sight', 'rgba(225,230,250,.9)');
+  L('Black: horizon 2M   Dashed: photon sphere 3M   Orange: disk 6M to 22M');
+  if (measure) {
+    L('Green circles: circumference radii ' + measure.ra.toFixed(2) + 'M and ' + measure.rb.toFixed(2) + 'M', 'rgba(140,240,210,.9)');
+    L('Flat geometry gap ' + measure.flat.toFixed(2) + ' M, measured radial distance ' + measure.ruler.toFixed(2) + ' M (+' + ((measure.ruler / measure.flat - 1) * 100).toFixed(0) + '%)', 'rgba(140,240,210,.9)');
+    L('The excess is spatial curvature (' + fmtLen(measure.ruler * Mlen()) + ')', 'rgba(140,240,210,.75)');
+  } else if (st.fall) L('No static rulers exist for a free-falling observer', 'rgba(140,240,210,.7)');
+  const unit = span > 300 ? 100 : span > 60 ? 20 : span > 15 ? 5 : 1;
+  ctx.strokeStyle = 'rgba(225,230,250,.6)'; ctx.lineWidth = 1 * d; ctx.beginPath(); ctx.moveTo(16 * d, H - 70 * d); ctx.lineTo(16 * d + unit * S, H - 70 * d); ctx.stroke();
+  ctx.fillStyle = 'rgba(225,230,250,.6)'; ctx.fillText(unit + ' M', 16 * d, H - 54 * d);
+}
+
+// ================================================================ 3D light-cone diagram, drawn in the style of a Matplotlib 3D plot
+const coneC = $('coneC'), cctx = coneC.getContext('2d');
+const cv = { az: -0.95, el: 0.52, drag: null };
+function resizeCone(){ const r = coneC.getBoundingClientRect(); coneC.width = r.width * DPR; coneC.height = r.height * DPR; }
+coneC.addEventListener('pointerdown', e => { cv.drag = { x: e.clientX, y: e.clientY }; coneC.setPointerCapture(e.pointerId); e.stopPropagation(); });
+coneC.addEventListener('pointermove', e => { if (!cv.drag) return; cv.az -= (e.clientX - cv.drag.x) * 0.01; cv.el = Math.max(-0.2, Math.min(1.4, cv.el + (e.clientY - cv.drag.y) * 0.01)); cv.drag = { x: e.clientX, y: e.clientY }; });
+coneC.addEventListener('pointerup', () => { cv.drag = null; });
+function hull(pts){ pts = pts.slice().sort((a, b) => a[0] - b[0] || a[1] - b[1]); const cr = (o, a, b) => (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]); const lo = [], up = []; for (const p of pts) { while (lo.length >= 2 && cr(lo[lo.length - 2], lo[lo.length - 1], p) <= 0) lo.pop(); lo.push(p); } for (let i = pts.length - 1; i >= 0; i--) { const p = pts[i]; while (up.length >= 2 && cr(up[up.length - 2], up[up.length - 1], p) <= 0) up.pop(); up.push(p); } up.pop(); lo.pop(); return lo.concat(up); }
+const flowP = []; let flowLast = 0;
+function drawCone(){
+  if (!st.cone) return;
+  const W = coneC.width, H = coneC.height, c = cctx, d = DPR;
+  const now = performance.now(), fdt = Math.min(0.05, (now - (flowLast || now)) / 1000); flowLast = now;
+  const bg = c.createRadialGradient(W * 0.5, H * 0.62, 0, W * 0.5, H * 0.62, Math.max(W, H) * 0.75);
+  bg.addColorStop(0, '#141a2c'); bg.addColorStop(1, '#04050a'); c.fillStyle = bg; c.fillRect(0, 0, W, H);
+  const r = V.len(st.pos), Rd = Math.max(r < 2 ? 3 : 6, 1.35 * r);
+  const span = 1.7 * Rd, tc = st.tPG, t0 = tc - 0.62 * span, t1 = tc + 0.38 * span;
+  const ca = Math.cos(cv.az), sa = Math.sin(cv.az), ce = Math.cos(cv.el), se = Math.sin(cv.el);
+  const sc = Math.min(W * 0.4, H * 0.4), ox = W * 0.5, oy = H * 0.5;
+  // time is scaled like space, so light always travels at 45 degrees
+  const PJ = (X, Y, T) => { const x = X / Rd, y = Y / Rd, z = (T - t0 - span / 2) / Rd; const xr = ca * x - sa * y, yr = sa * x + ca * y; return [ox + xr * sc, oy - (z * ce - yr * se) * sc, yr * ce + z * se]; };
+  const VD = [sa * ce, ca * ce, se];
+  const LT = (() => { const l = [VD[0] * 0.5 - ca * 0.6, VD[1] * 0.5 + sa * 0.6, VD[2] + 0.8]; const n = Math.hypot(...l); return l.map(v => v / n); })();
+  const items = [];
+  const poly = (P3, fill, stroke, lw, glow) => { const q = P3.map(p => PJ(...p)); let z = 0; for (const p of q) z += p[2]; items.push({ z: z / q.length, q, fill, stroke, lw, glow }); };
+  const segm = (a, b, col, lw, glow) => { const p = PJ(...a), q = PJ(...b); items.push({ z: (p[2] + q[2]) / 2, q: [p, q], stroke: col, lw, line: true, glow }); };
+  const lum = (P3) => {
+    const u = P3.map(p => [p[0] / Rd, p[1] / Rd, (p[2] - t0) / Rd]);
+    const a = [u[1][0] - u[0][0], u[1][1] - u[0][1], u[1][2] - u[0][2]], b = [u[2][0] - u[0][0], u[2][1] - u[0][1], u[2][2] - u[0][2]];
+    let n = [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]]; const nl = Math.hypot(...n) || 1;
+    return Math.abs((n[0] * LT[0] + n[1] * LT[1] + n[2] * LT[2]) / nl);
+  };
+  const ln = (pts, col, lw, glow) => { c.save(); if (glow) { c.shadowColor = col; c.shadowBlur = glow * d; } c.strokeStyle = col; c.lineWidth = lw * d; c.beginPath(); pts.forEach((q, i) => i ? c.lineTo(q[0], q[1]) : c.moveTo(q[0], q[1])); c.stroke(); c.restore(); };
+  const circ = (R, T, n) => { const a = []; for (let i = 0; i <= (n || 72); i++) { const t = i / (n || 72) * Math.PI * 2; a.push(PJ(R * Math.cos(t), R * Math.sin(t), T)); } return a; };
+  // ---- floor: polar grid
+  for (let k = 1; k <= 4; k++) ln(circ(Rd * k / 4, t0), 'rgba(120,150,220,' + (0.10 + 0.04 * k) + ')', 0.8);
+  for (let i = 0; i < 12; i++) { const a = i / 12 * Math.PI * 2; ln([PJ(2 * Math.cos(a), 2 * Math.sin(a), t0), PJ(Rd * Math.cos(a), Rd * Math.sin(a), t0)], 'rgba(120,150,220,.10)', 0.7); }
+  // ---- floor: space flowing inward, each grain moving at the local inflow speed sqrt(2M/r)
+  if (flowP.length === 0) for (let i = 0; i < 260; i++) flowP.push({ r: Math.sqrt(Math.random()), a: Math.random() * Math.PI * 2 });
+  const spd = Rd * 0.06 * (st.speed || 1);
+  c.save(); c.globalCompositeOperation = 'lighter';
+  for (const g of flowP) {
+    let R = 0.15 + g.r * (Rd - 0.15);
+    const b = Math.sqrt(2 / R); R -= b * spd * fdt * 6; g.r = (R - 0.15) / (Rd - 0.15);
+    if (g.r <= 0) { g.r = 1; g.a = Math.random() * Math.PI * 2; R = Rd; }
+    const L = Math.min(R * 0.5, b * Rd * 0.035), p = PJ(R * Math.cos(g.a), R * Math.sin(g.a), t0), q = PJ((R + L) * Math.cos(g.a), (R + L) * Math.sin(g.a), t0);
+    const fade = Math.min(1, (Rd - R) / (0.15 * Rd));
+    const col = b >= 1 ? 'rgba(255,90,60,' + 0.9 * fade + ')' : b > 0.6 ? 'rgba(255,170,80,' + 0.8 * fade + ')' : 'rgba(110,170,255,' + 0.7 * fade + ')';
+    c.strokeStyle = col; c.lineWidth = 1.3 * d; c.beginPath(); c.moveTo(q[0], q[1]); c.lineTo(p[0], p[1]); c.stroke();
+  }
+  c.restore();
+  // black disc of the horizon on the floor, with a thin glowing rim
+  c.fillStyle = '#000'; c.beginPath(); circ(2, t0).forEach((q, i) => i ? c.lineTo(q[0], q[1]) : c.moveTo(q[0], q[1])); c.closePath(); c.fill();
+  ln(circ(2, t0), 'rgba(170,140,255,.9)', 1.2, 8);
+  // ---- horizon wall: dark glass with glowing rings and rulings
+  const NS = 36, NT = 10;
+  for (let i = 0; i < NS; i++) for (let j = 0; j < NT; j++) {
+    const a0 = i / NS * Math.PI * 2, a1 = (i + 1) / NS * Math.PI * 2, T0 = t0 + span * j / NT, T1 = t0 + span * (j + 1) / NT;
+    const P = [[2 * Math.cos(a0), 2 * Math.sin(a0), T0], [2 * Math.cos(a1), 2 * Math.sin(a1), T0], [2 * Math.cos(a1), 2 * Math.sin(a1), T1], [2 * Math.cos(a0), 2 * Math.sin(a0), T1]];
+    const k = lum(P), fadeT = 1 - Math.pow((j + 0.5) / NT, 2) * 0.7;
+    poly(P, 'rgba(' + Math.round(40 + 70 * k) + ',' + Math.round(30 + 50 * k) + ',' + Math.round(90 + 110 * k) + ',' + (0.38 * fadeT) + ')', null, 0);
+    if (i % 3 === 0) segm(P[0], P[3], 'rgba(170,140,255,' + 0.35 * fadeT + ')', 0.7);
+    if (j % 2 === 0) segm(P[0], P[1], 'rgba(170,140,255,' + 0.3 * fadeT + ')', 0.7);
+  }
+  // singularity
+  for (let j = 0; j < NT; j++) segm([0, 0, t0 + span * j / NT], [0, 0, t0 + span * (j + 1) / NT], '#ff5040', 2.2, 12);
+  // ---- light cones
+  // future light cone traced as real light rays: each ray moves at c relative to the inflowing space, dx/dt = u + v(x)
+  const cone = (X, Y, T, h, strong) => {
+    const N = 32, K = 14, rays = [];
+    for (let i = 0; i < N; i++) {
+      const a = i / N * Math.PI * 2, ux = Math.cos(a), uy = Math.sin(a);
+      let x = X, y = Y, t = T; const pts = [[x, y, t]];
+      for (let k = 0; k < K; k++) {
+        const dt = h / K, rr = Math.hypot(x, y);
+        if (rr < 0.02) { pts.push([0, 0, t + dt]); t += dt; continue; }
+        const b = Math.sqrt(2 / rr), vx = ux - b * x / rr, vy = uy - b * y / rr;
+        let nx = x + vx * dt, ny = y + vy * dt;
+        // a ray that would pass the centre has hit the singularity
+        if (nx * x + ny * y < 0 || Math.hypot(nx, ny) < 0.02) { const f = rr / Math.max(1e-6, rr - (nx * x + ny * y) / rr); nx = 0; ny = 0; t += dt * Math.min(1, f); x = 0; y = 0; pts.push([0, 0, t]); continue; }
+        x = nx; y = ny; t += dt; pts.push([x, y, t]);
+      }
+      rays.push(pts);
+    }
+    for (let i = 0; i < N; i++) {
+      const A = rays[i], B = rays[(i + 1) % N];
+      for (let k = 0; k < K; k++) {
+        const P = [A[k], A[k + 1], B[k + 1], B[k]];
+        if (Math.hypot(P[1][0] - P[0][0], P[1][1] - P[0][1]) + Math.hypot(P[2][0] - P[3][0], P[2][1] - P[3][1]) < 1e-9 && k > 0) continue;
+        const k2 = lum([P[0], P[1], P[2][0] === P[1][0] && P[2][1] === P[1][1] ? P[3] : P[2]]);
+        poly(P, strong ? 'rgba(' + Math.round(200 + 55 * k2) + ',' + Math.round(90 + 90 * k2) + ',' + Math.round(20 + 40 * k2) + ',' + (0.22 + 0.2 * k2) + ')' : 'rgba(255,150,60,' + (0.06 + 0.08 * k2) + ')', null, 0);
+      }
+      if (strong && i % 4 === 0) for (let k = 0; k < K; k++) segm(A[k], A[k + 1], 'rgba(255,210,150,.55)', 0.8);
+      segm(A[K], B[K], strong ? 'rgba(255,200,120,.95)' : 'rgba(255,160,80,.45)', strong ? 1.4 : 0.8, strong ? 6 : 0);
+    }
+  };
+  const az0 = Math.atan2(st.pos[2], st.pos[0]);
+  const XY = (rr, a) => [rr * Math.cos(a - az0), rr * Math.sin(a - az0)];
+  const wl = (arr, col, lw, glow) => { let prev = null; for (const h of arr) { if (h.t < t0 || h.t > t1) { prev = null; continue; } const [X, Y] = XY(h.r, h.a); if (Math.hypot(X, Y) > Rd * 1.02) { prev = null; continue; } const cur = [X, Y, h.t]; if (prev) segm(prev, cur, col, lw, glow); prev = cur; } };
+  if (st.probe) { const pa = Math.atan2(st.probe.dir[2], st.probe.dir[0]); wl(st.probe.hist.map(h => ({ r: h.r, a: pa, t: h.t })), '#5fe3d0', 1.8, 6); }
+  wl(hist, '#6fb8ff', 2.4, 8);
+  const past = hist.filter(h => h.t > t0 + 0.08 * span && h.t < tc - 0.2 * span);
+  for (const k of [0.3, 0.7]) { const h = past[Math.floor(past.length * k)]; if (!h) continue; const [X, Y] = XY(h.r, h.a); if (Math.hypot(X, Y) < Rd * 0.97) cone(X, Y, h.t, Math.min(0.12 * span, Math.max(0.4, 0.6 * h.r)), false); }
+  const far = r > Rd * 0.97, ux = far ? Rd * 0.97 : r;
+  cone(ux, 0, tc, Math.min(0.22 * span, Math.max(0.12 * span, 0.7 * r)), true);
+  // ---- paint far to near
+  items.sort((a, b) => a.z - b.z);
+  for (const it of items) {
+    c.beginPath(); it.q.forEach((q, i) => i ? c.lineTo(q[0], q[1]) : c.moveTo(q[0], q[1]));
+    if (it.line) { if (it.glow) { c.save(); c.shadowColor = it.stroke; c.shadowBlur = it.glow * d; } c.strokeStyle = it.stroke; c.lineWidth = it.lw * d; c.lineCap = 'round'; c.stroke(); if (it.glow) c.restore(); continue; }
+    c.closePath(); if (it.fill) { c.fillStyle = it.fill; c.fill(); }
+  }
+  // you
+  const me = PJ(ux, 0, tc);
+  c.save(); c.shadowColor = '#9fd0ff'; c.shadowBlur = 14 * d; c.fillStyle = '#e8f4ff'; c.beginPath(); c.arc(me[0], me[1], 3.8 * d, 0, 7); c.fill(); c.restore();
+  // ---- labels
+  const tag = (txt, p, col, dx, dy, al) => { c.font = '600 ' + 10.5 * d + 'px -apple-system, Segoe UI, sans-serif'; c.textAlign = al || 'left'; c.fillStyle = col; c.fillText(txt, p[0] + dx * d, p[1] + dy * d); };
+  tag(far ? 'you · ' + r.toFixed(0) + ' M' : 'you', me, '#cfe6ff', 8, -6);
+  tag('horizon', PJ(-2.3, 0, t0 + 0.42 * span), 'rgba(190,170,255,.9)', -4, 0, 'right');
+  tag('singularity', PJ(0, 0, t1), 'rgba(255,120,100,.95)', -6, -4, 'right');
+  c.font = 9.5 * d + 'px -apple-system, Segoe UI, sans-serif'; c.fillStyle = 'rgba(170,180,210,.55)'; c.textAlign = 'right';
+  c.fillText('time ↑', W - 8 * d, 14 * d); c.fillText('grid ring = ' + (Rd / 4).toFixed(1) + ' M', W - 8 * d, H - 8 * d); c.textAlign = 'left';
+  // ---- caption
+  const beta = Math.sqrt(2 / r);
+  let s;
+  if (r < 2) s = 'Inside the horizon: every future direction points inward';
+  else if (st.fall) s = 'Free fall · inflow <b>' + beta.toFixed(2) + ' c</b>';
+  else s = 'Inflow <b>' + beta.toFixed(2) + ' c</b>' + (r < 2.08 ? ' · barely possible to hover' : ' · hovering possible');
+  $('coneT').innerHTML = s + '<span style="float:right;opacity:.5">drag to rotate</span>';
+}
+
+// ================================================================ sound
+let AC = null, snd = null, soundOn = false;
+function ensureAudio(){ if (AC || !soundOn) return; buildAudio(); }
+function buildAudio(){
+  try { AC = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { return; }
+  const master = AC.createGain(); master.gain.value = 0;
+  // a compressor and make-up gain so the whole mix sits several times louder without clipping
+  const comp = AC.createDynamicsCompressor(); comp.threshold.value = -24; comp.knee.value = 12; comp.ratio.value = 4; comp.attack.value = 0.01; comp.release.value = 0.3;
+  const mk = AC.createGain(); mk.gain.value = 2.2; master.connect(comp).connect(mk).connect(AC.destination);
+  const lp = AC.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 600; lp.Q.value = 0.3; lp.connect(master);
+  const pad = AC.createGain(); pad.gain.value = 0.32; pad.connect(lp);
+  const notes = [55, 82.41, 110, 164.81, 220 * 1.189], oscs = [];
+  notes.forEach((f, i) => { const o = AC.createOscillator(); o.type = i < 2 ? 'sine' : 'triangle'; o.frequency.value = f; o.detune.value = (i - 2) * 3; const g = AC.createGain(); g.gain.value = [0.5, 0.35, 0.18, 0.08, 0.05][i]; o.connect(g).connect(pad); o.start(); oscs.push(o); });
+  const lfo = AC.createOscillator(); lfo.frequency.value = 0.07; const lfoG = AC.createGain(); lfoG.gain.value = 0.12; lfo.connect(lfoG).connect(pad.gain); lfo.start();
+  const bell = AC.createGain(); bell.gain.value = 0; bell.connect(master);
+  const b1 = AC.createOscillator(), b2 = AC.createOscillator(); b1.type = 'sine'; b2.type = 'sine'; b1.frequency.value = 660; b2.frequency.value = 660 * 2.76;
+  const b2g = AC.createGain(); b2g.gain.value = 0.25; b1.connect(bell); b2.connect(b2g).connect(bell); b1.start(); b2.start();
+  const to = AC.createOscillator(); to.type = 'triangle'; to.frequency.value = 60; const tf = AC.createBiquadFilter(); tf.type = 'lowpass'; tf.frequency.value = 700; const tg = AC.createGain(); tg.gain.value = 0; to.connect(tf).connect(tg).connect(master); to.start();
+  const nb = AC.createBuffer(1, AC.sampleRate, AC.sampleRate), nd = nb.getChannelData(0); for (let i = 0; i < nd.length; i++) nd[i] = Math.random() * 2 - 1;
+  snd = { master, lp, pad, oscs, bell, b1, b2, to, tg, nb, next: 0 };
+  master.gain.setTargetAtTime(0.8, AC.currentTime, 0.8);
+}
+$('sound').onclick = () => {
+  soundOn = !soundOn; $('sound').textContent = soundOn ? 'Sound: on' : 'Sound: off';
+  if (soundOn) { if (!AC) buildAudio(); else { AC.resume(); if (!st.ended) snd.master.gain.setTargetAtTime(0.8, AC.currentTime, 0.3); } }
+  else if (snd) snd.master.gain.setTargetAtTime(0, AC.currentTime, 0.2);
+};
+function tearSound(){
+  if (!snd || !soundOn) return;
+  const t = AC.currentTime, src = AC.createBufferSource(); src.buffer = snd.nb;
+  const bp = AC.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.setValueAtTime(2400, t); bp.frequency.exponentialRampToValueAtTime(300, t + 0.7); bp.Q.value = 1.5;
+  const g = AC.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.9, t + 0.02); g.gain.exponentialRampToValueAtTime(0.001, t + 0.8);
+  src.connect(bp).connect(g).connect(snd.master); src.start(t); src.stop(t + 0.9);
+  if (navigator.vibrate) try { navigator.vibrate([60, 40, 220]); } catch (e) {}
+}
+function updateAudio(r, farRate, ta){
+  if (!snd || !soundOn || st.ended) return;
+  const t = AC.currentTime, close = Math.min(1, 12 / r);
+  // what reaches you from outside dims and reddens: the chord darkens and quietens with it
+  const fr = Math.min(1.5, farRate);
+  snd.lp.frequency.setTargetAtTime(Math.max(90, (200 + 700 * close) * Math.min(1, fr)), t, 0.4);
+  snd.oscs.forEach((o, i) => o.detune.setTargetAtTime((i - 2) * 3 + 1200 * Math.log2(Math.max(0.25, Math.min(1.2, fr))) * 0.5, t, 0.5));
+  if (st.fall) {
+    const k = Math.min(1, Math.max(0, (Math.log10(ta) + 6) / 12));
+    snd.to.frequency.setTargetAtTime(50 * Math.pow(16, k), t, 0.1);
+    snd.tg.gain.setTargetAtTime(0.015 + 0.09 * k, t, 0.1);
+  } else snd.tg.gain.setTargetAtTime(0, t, 0.2);
+  if (t > snd.next) {   // a beacon far away chimes once per second of its own time; you hear it at the rate its light reaches you
+    const period = Math.max(0.15, Math.min(5, 1.4 / farRate));
+    snd.next = t + period;
+    const f = Math.max(110, Math.min(1760, 660 * farRate));
+    snd.b1.frequency.setValueAtTime(f, t); snd.b2.frequency.setValueAtTime(f * 2.76, t);
+    const vol = 0.06 * Math.min(1, Math.max(0.15, farRate));
+    snd.bell.gain.cancelScheduledValues(t); snd.bell.gain.setValueAtTime(0, t);
+    snd.bell.gain.linearRampToValueAtTime(vol, t + 0.01); snd.bell.gain.exponentialRampToValueAtTime(0.0003, t + 1.2);
+  }
+}
+
+// ================================================================ verification
+function bisect(fn, lo, hi, it){ for (let i = 0; i < (it || 50); i++) { const m = 0.5 * (lo + hi); if (fn(m)) hi = m; else lo = m; } return 0.5 * (lo + hi); }
+function phiExact(b, rObs){
+  const uObs = 1 / rObs, u0 = bisect(u => (u * u - 2 * u * u * u) >= 1 / (b * b), 0, 1 / 3, 80);
+  const g = s => { const u = u0 * (1 - s * s); const Q = (u + u0) - 2 * (u * u + u * u0 + u0 * u0); return 2 * Math.sqrt(u0) / Math.sqrt(Q); };
+  const simpson = (a, c, n) => { const h = (c - a) / n; let s = g(a) + g(c); for (let i = 1; i < n; i++) s += g(a + i * h) * (i % 2 ? 4 : 2); return s * h / 3; };
+  return simpson(0, 1, 4000) + simpson(0, Math.sqrt(Math.max(0, 1 - uObs / u0)), 4000);
+}
+function runVerify(){
+  const tb = document.querySelector('#vt tbody'); tb.innerHTML = '';
+  const row = (a, th, nu, src, dg) => { const err = Math.abs(nu - th) / Math.abs(th) * 100; const tr = document.createElement('tr'); tr.innerHTML = '<td>' + a + '</td><td class="n">' + th.toFixed(dg) + '</td><td class="n">' + nu.toFixed(dg) + '</td><td class="ok">' + (err < 0.001 ? '< 0.001%' : err.toFixed(3) + '%') + '</td><td style="opacity:.65">' + src + '</td>'; tb.appendChild(tr); };
+  const note = t => { const tr = document.createElement('tr'); tr.innerHTML = '<td colspan="5" style="opacity:.6">' + t + '</td>'; tb.appendChild(tr); };
+  // 1. critical impact parameter, from a static observer very far away
+  const rF = 4000, posF = [rF, 0, 0], bF = Math.sqrt(2 / rF);
+  const capF = bb => { const sinp = bb * Math.sqrt(1 - 2 / rF) / rF; const dd = [-Math.sqrt(1 - sinp * sinp), sinp, 0]; return PH.trace(posF, PH.boost(V.mul(dd, -1), [bF, 0, 0]), -1, { disk: false, rEsc: rF * 1.01, maxSteps: 6000 }).end === 'hole'; };
+  const bc = bisect(bb => !capF(bb), 4.5, 6.0, 50);
+  row('Shadow size, seen from far away (M)', 3 * Math.sqrt(3), bc, 'b<sub>c</sub> = 3√3 M', 4);
+  const vb = bc * (1 + 2e-7), sinp = vb * Math.sqrt(1 - 2 / rF) / rF;
+  const res = PH.trace(posF, PH.boost(V.mul([-Math.sqrt(1 - sinp * sinp), sinp, 0], -1), [bF, 0, 0]), -1, { disk: false, rEsc: rF * 1.01, maxSteps: 30000 });
+  row('Photon sphere radius (M)', 3, res.minR, 'r = 3M', 4);
+  const r = V.len(st.pos), rh = V.norm(st.pos), tang = V.norm(V.cross(rh, Math.abs(rh[1]) < 0.9 ? [0, 1, 0] : [1, 0, 0])), beta = Math.sqrt(2 / r);
+  const shootAt = (psi, w, opt) => { const dd = V.add(V.mul(rh, -Math.cos(psi)), V.mul(tang, Math.sin(psi))); return PH.trace(st.pos, PH.boost(V.mul(dd, -1), w), -1, Object.assign({ disk: false, maxSteps: 8000 }, opt || {})); };
+  if (r > 2.02) {
+    const s = 3 * Math.sqrt(3) * Math.sqrt(1 - 2 / r) / r, psS = r >= 3 ? Math.asin(Math.min(1, s)) : Math.PI - Math.asin(Math.min(1, s));
+    const psH = bisect(ps => shootAt(ps, V.mul(rh, beta)).end !== 'hole', 0, Math.PI * 0.999, 46);
+    row('Shadow angle here, hovering (°)', psS * 180 / Math.PI, psH * 180 / Math.PI, 'sin ψ = 3√3 M √(1−2M/r) / r', 4);
+    const psR = bisect(ps => shootAt(ps, [0, 0, 0]).end !== 'hole', 0, Math.PI * 0.999, 46);
+    const thR = Math.acos((Math.cos(psS) + beta) / (1 + beta * Math.cos(psS)));
+    row('Shadow angle here, falling (°)', thR * 180 / Math.PI, psR * 180 / Math.PI, 'cos ψ′ = (cos ψ + v)/(1 + v cos ψ), v = √(2M/r)', 4);
+  } else note('Hovering is impossible inside the horizon, so the shadow tests are skipped.');
+  if (r > 8) {
+    const bE = bisect(bb => phiExact(bb, r) < Math.PI, bc * 1.0001, r * 0.999, 60);
+    const psiE = Math.asin(bE * Math.sqrt(1 - 2 / r) / r);
+    const psiN = bisect(ps => shootAt(ps, V.mul(rh, beta), { rEsc: 2e6, maxSteps: 30000, plane: [rh, tang] }).sweep < Math.PI, Math.asin(Math.min(1, 3 * Math.sqrt(3) * Math.sqrt(1 - 2 / r) / r)) * 1.001, Math.PI / 2, 46);
+    row('Einstein ring angle (°)', psiE * 180 / Math.PI, psiN * 180 / Math.PI, 'dφ/du = 1/√(1/b² − u² + 2u³)', 4);
+  } else note('Einstein ring test needs r > 8M.');
+  // free fall time from rest at 10 M to the centre
+  const r0 = 10, Tth = Math.PI / 2 * Math.sqrt(r0 * r0 * r0 / 2);
+  let rr = r0 * (1 - 1e-12), vr = 0, tt = 0;
+  while (rr > 1e-4) { const h = Math.min(0.01, 0.002 * Math.pow(rr, 1.5)); const a = rr2 => -1 / (rr2 * rr2); const k1v = a(rr), k1r = vr, k2v = a(rr + h / 2 * k1r), k2r = vr + h / 2 * k1v, k3v = a(rr + h / 2 * k2r), k3r = vr + h / 2 * k2v, k4v = a(rr + h * k3r), k4r = vr + h * k3v; rr += h / 6 * (k1r + 2 * k2r + 2 * k3r + k4r); vr += h / 6 * (k1v + 2 * k2v + 2 * k3v + k4v); tt += h; }
+  row('Fall time from 10M to the centre (M)', Tth, tt, 'τ = (π/2)√(r₀³/2M)', 3);
+  $('vnote').innerHTML =
+    '<div class="vh">What happens on the way in</div><ul class="vl">' +
+    '<li>The shadow grows. Fewer and fewer light paths from the sky can reach you.</li>' +
+    '<li>Photon sphere, 3M. Light can orbit the hole here.</li>' +
+    '<li>Horizon, 2M. Space flows inward at the speed of light. Nothing marks the crossing, but no outward path remains.</li>' +
+    '<li>Blue ahead, red behind. Light ahead is squeezed into a bright blueshifted ring. Light from behind has to catch up with you and arrives redshifted, by 1/(1 + √(2M/r)) straight behind.</li>' +
+    '<li>Spaghettified. Head-to-foot pull 2GM·L/r³ (L = 1.8 m) passes about 100 g. Gaia BH1 does this far outside its horizon, Sgr A* only next to the centre.</li>' +
+    '<li>Singularity. At r = 0 curvature diverges and general relativity stops.</li>' +
+    '<li>The probe. Seen from outside it slows, reddens and fades at the horizon, though its own clock keeps running.</li></ul>' +
+    '<div class="vh">How it is computed</div>' +
+    'Painlevé–Gullstrand form of Schwarzschild: ds² = −dt² + |dx − v dt|², v = −√(2M/r) r̂. Light: dx/dt = p̂ + v. ' +
+    'Each pixel traces one ray backward in time with fourth-order Runge–Kutta. Disk: 6M to 22M, blackbody colours, brightness ∝ g⁴.';
+}
+$('verifyBtn').onclick = () => { $('verify').style.display = 'block'; setTimeout(runVerify, 30); };
+$('verifyClose').onclick = () => { $('verify').style.display = 'none'; };
+
+// ================================================================ rendering
+let still = 0, nAcc = 0, cur = 0, frameNo = 0;
+function draw(blend, jit){
+  const b = basis();
+  const src = acc[cur], dst = acc[1 - cur];
+  gl.bindFramebuffer(gl.FRAMEBUFFER, dst.f); gl.viewport(0, 0, dst.w, dst.h);
+  gl.useProgram(P.rt.p); const U = P.rt.u;
+  gl.uniform2f(U.uRes, dst.w, dst.h); gl.uniform3fv(U.uPos, st.pos); gl.uniform3fv(U.uF, b.f); gl.uniform3fv(U.uR, b.r); gl.uniform3fv(U.uU, b.u);
+  gl.uniform3fv(U.uW, camW()); gl.uniform1f(U.uFish, st.fish ? 1 : 0);
+  gl.uniform1f(U.uFy, FY); gl.uniform1f(U.uTime, st.tPG); gl.uniform1f(U.uBlend, blend); gl.uniform1f(U.uSpin, 1.0); gl.uniform2f(U.uJit, jit[0], jit[1]);
+  gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, src.t); gl.uniform1i(U.uPrev, 0);
+  gl.drawArrays(gl.TRIANGLES, 0, 3);
+  cur = 1 - cur;
+  // auto exposure: read back a 16x16 log-luminance grid every few frames
+  if ((drawNo++) % 6 === 0) {
+    gl.bindFramebuffer(gl.FRAMEBUFFER, lumT.f); gl.viewport(0, 0, 16, 16);
+    gl.useProgram(P.lum.p); gl.bindTexture(gl.TEXTURE_2D, acc[cur].t); gl.uniform1i(P.lum.u.uSrc, 0);
+    gl.drawArrays(gl.TRIANGLES, 0, 3);
+    const px = new Uint8Array(16 * 16 * 4); gl.readPixels(0, 0, 16, 16, gl.RGBA, gl.UNSIGNED_BYTE, px);
+    let s = 0; for (let i = 0; i < 256; i++) s += Math.pow(2, px[i * 4] / 255 * 34 - 17);
+    st.meanLum = s / 256;
+    const arr = []; for (let i = 0; i < 256; i++) arr.push(Math.pow(2, px[i * 4] / 255 * 34 - 17)); arr.sort((x, y) => x - y); st.hiLum = arr[243]; st.maxLum = arr[252];
+  }
+  let s = acc[cur];
+  gl.useProgram(P.down.p);
+  for (let i = 0; i < blooms.length; i++) {
+    const t = blooms[i]; gl.bindFramebuffer(gl.FRAMEBUFFER, t.f); gl.viewport(0, 0, t.w, t.h);
+    gl.bindTexture(gl.TEXTURE_2D, s.t); gl.uniform1i(P.down.u.uSrc, 0); gl.uniform2f(P.down.u.uTx, 1 / s.w, 1 / s.h); gl.uniform1f(P.down.u.uPre, i === 0 ? 1 : 0); gl.uniform1f(P.down.u.uExp, st.exposure);
+    gl.drawArrays(gl.TRIANGLES, 0, 3); s = t;
+  }
+  gl.useProgram(P.up.p);
+  let up = blooms[blooms.length - 1];
+  for (let i = blooms.length - 2; i >= 0; i--) {
+    const t = blooms.ups[i]; gl.bindFramebuffer(gl.FRAMEBUFFER, t.f); gl.viewport(0, 0, t.w, t.h);
+    gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, up.t); gl.uniform1i(P.up.u.uSrc, 0);
+    gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, blooms[i].t); gl.uniform1i(P.up.u.uBase, 1);
+    gl.uniform2f(P.up.u.uTx, 1 / up.w, 1 / up.h); gl.drawArrays(gl.TRIANGLES, 0, 3); up = t;
+  }
+  gl.bindFramebuffer(gl.FRAMEBUFFER, null); gl.viewport(0, 0, canvas.width, canvas.height);
+  gl.useProgram(P.fin.p);
+  gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, acc[cur].t); gl.uniform1i(P.fin.u.uHdr, 0);
+  gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, up.t); gl.uniform1i(P.fin.u.uBloom, 1);
+  gl.uniform1f(P.fin.u.uExp, st.exposure);
+  const comp = false; gl.uniform1f(P.fin.u.uComp, comp ? 1 : 0); gl.uniform1f(P.fin.u.uLref, Math.max(1e-9, (st.maxLum || 1) * 1.5));
+  gl.drawArrays(gl.TRIANGLES, 0, 3);
+  gl.activeTexture(gl.TEXTURE0);
+}
+
+// ================================================================ HUD
+const el = {}; ['rM', 'rKm', 'tYou', 'tFar', 'rate', 'play', 'fallLines', 'probeLines'].forEach(k => el[k] = $(k));
+function hud(r, farRate, playK){
+  el.rM.textContent = r < 100 ? r.toFixed(r < 3 ? 3 : 2) : r.toFixed(0);
+  el.rKm.textContent = BHS[bhi].short + ' · ' + fmtLen(r * Mlen());
+  el.tYou.textContent = fmtT(st.tau * Msec());
+  el.tFar.textContent = fmtT(st.far * Msec());
+  if (st.fall) { el.fallLines.style.display = 'block'; el.fallLines.innerHTML = 'Time to centre <span class="num">' + fmtT(Math.max(0, st.fall.total - st.fall.tf) * Msec()) + '</span>'; }
+  else el.fallLines.style.display = 'none';
+  const pr = st.probe;
+  if (pr && !st.fall) { el.probeLines.style.display = 'block'; el.probeLines.innerHTML = 'Probe clock <span class="num">' + fmtT(pr.tf * Msec()) + '</span><br>Probe clock as seen <span class="num">' + fmtT(pr.seenTau * Msec()) + '</span>'; }
+  else el.probeLines.style.display = 'none';
+}
+
+// ================================================================ main loop
+let last = performance.now(), lastHud = 0, lastDraw = 0, drawNo = 0;
+function frame(now){
+  const rawDt = (now - last) / 1000, dt = Math.min(0.25, rawDt); last = now; frameNo++;
+  // a slow machine should not slow the story down: time runs on the real clock, and the picture drops resolution instead
+  ftEma = ftEma * 0.9 + Math.min(0.5, rawDt) * 0.1; if (frameNo > 30 && ftEma > 0.045 && maxScale > 0.6 && now - scaleT > 1500) { maxScale = Math.max(0.6, maxScale - 0.15); scaleT = now; }
+  try { tick(dt, now); } catch (e) { console.error(e); window.__err = String(e && e.stack || e); }
+  requestAnimationFrame(frame);
+}
+function tick(dt, now){
+  if (!st.ended) {
+    // ---- motion
+    if (!st.fall) {
+      if (st.mode === 'orbit') {
+        const o = st.orb;
+        if (!ptrs.size) { o.az += o.vaz; o.el = Math.max(-1.45, Math.min(1.45, o.el + o.vel)); o.vaz *= Math.pow(0.04, dt); o.vel *= Math.pow(0.04, dt); if (Math.abs(o.vaz) + Math.abs(o.vel) > 1e-4) st.moved = true; }
+        if (keys['w'] || keys['arrowup']) o.tlr = Math.max(ZMIN, o.tlr - dt * 0.8); if (keys['s'] || keys['arrowdown']) o.tlr = Math.min(ZMAX, o.tlr + dt * 0.8);
+        if (keys['a'] || keys['arrowleft']) o.az -= dt * 0.8; if (keys['d'] || keys['arrowright']) o.az += dt * 0.8;
+        const dl = o.tlr - o.lr; if (Math.abs(dl) > 1e-4) { o.lr += dl * Math.min(1, dt * 5); st.moved = true; }
+        if (o.taz != null) { const da = o.taz - o.az; o.az += da * Math.min(1, dt * 2.2); st.moved = true; if (Math.abs(da) < 0.002) o.taz = null; }
+        setOrbitPos(); zoomKnob();
+        if (keys['a'] || keys['d'] || keys['arrowleft'] || keys['arrowright']) st.moved = true;
+      } else {
+        let f = 0, s = 0, uD = 0;
+        if (keys['w'] || keys['arrowup']) f += 1; if (keys['s'] || keys['arrowdown']) f -= 1;
+        if (keys['d'] || keys['arrowright']) s += 1; if (keys['a'] || keys['arrowleft']) s -= 1;
+        if (keys['r'] || keys[' ']) uD += 1; if (keys['f'] || keys['shift']) uD -= 1;
+        f += -joy.dy; s += joy.dx;
+        if (f || s || uD) {
+          const b = basis(), r = V.len(st.pos), sp = 0.45 * Math.min(Math.max(r - 2, 0.05), 60);
+          let p = V.add(st.pos, V.mul(V.add(V.add(V.mul(b.f, f), V.mul(b.r, s)), V.mul([0, 1, 0], uD)), sp * dt));
+          const rn = V.len(p); if (rn < HOVER_MIN) p = V.mul(p, HOVER_MIN / rn); if (rn > 3000) p = V.mul(p, 3000 / rn);
+          st.pos = p; st.moved = true;
+        }
+      }
+    }
+    // ---- time: playK is how many M of your own time pass per real second
+    const r = V.len(st.pos);
+    let playK = st.speed;
+    if (st.probeHold > 0) { st.probeHold -= dt; playK = 0; }
+    else if (st.probe && !st.fall && !st.probe.faded) {
+      // pace by where you SEE the probe, not where it really is: its light reaches you late
+      const seenR = st.probe.img ? st.probe.img.r : probeR(st.probe);
+      // the last stretch, where it hangs at the edge and fades, plays at a steady clip instead of crawling
+      playK = Math.max(playK, Math.max(Math.pow(Math.max(seenR, 2), 1.5) / 1.6, 7, 0.2 * V.len(st.pos)) * st.speed);
+      if (st.probe.img && (st.probe.img.g < 0.05 || st.probe.img.r < 2)) { st.probe.faded = true; st.probe.fadedAt = performance.now(); }
+    }
+    let dTauStep = playK * dt;
+    if (st.fall) {
+      const left = st.fall.total - st.fall.tf;
+      playK = Math.pow(Math.max(r, 0.05), 1.5) / 4 * (r < 1.7 ? Math.min(st.speed, 2.5) : st.speed);   // inside, capped at 2.5x so the turn and the red still have time
+      if (r < 2.3 && r > 1.75) playK *= 0.3;   // slow motion around the horizon
+      const dTau = Math.min(playK * dt, Math.max(left - 1e-9, 0)); dTauStep = dTau;
+      const rPrev = r;
+      st.fall.tf += dTau;
+      const eta = fallEta(st.fall.tf), rn = Math.max(st.fall.r0 * Math.cos(eta) * Math.cos(eta), 1e-4);
+      st.pos = V.mul(st.fall.dir, rn); st.moved = true;
+      stepParticles(dTau, Math.max((rPrev + rn) / 2, 0.01));
+      if (st.fall.autoLook) {
+        const F2 = st.fall, now2 = performance.now();
+        if (now2 - F2.edgeT > 300) {   // where the black region ends, seen from here
+          F2.edgeT = now2; const c0 = V.mul(F2.dir, -1), w0 = V.mul(F2.dir, PH.wFall(F2.e, rn));
+          let lo = 0, hi = Math.PI * 0.98;
+          for (let i = 0; i < 16; i++) { const m = (lo + hi) / 2, dd = V.add(V.mul(c0, Math.cos(m)), V.mul(F2.side, Math.sin(m))); const t = PH.trace(V.mul(F2.dir, rn), PH.boost(V.mul(dd, -1), w0), -1, { disk: false, maxSteps: 700 }); if (t.end === 'hole' || t.end === 'lost') lo = m; else hi = m; }
+          F2.edge = (lo + hi) / 2;
+        }
+        // once inside, turn round to watch the sky you came from: it reddens as you fall
+        const back = rn < 1.5;
+        const lift = Math.min(1, Math.max(0, (1.4 - rn) / 0.8)), sm = lift * lift * (3 - 2 * lift);   // tilts further up the deeper you are
+        const a = back ? Math.min(Math.PI - 0.35, F2.edge + 0.5 + (Math.PI - 0.35 - F2.edge - 0.5) * sm) : Math.min(2.7, Math.max(0, F2.edge - 0.3)), c0 = V.mul(F2.dir, -1);
+        const want = V.norm(V.add(V.mul(c0, Math.cos(a)), V.mul(F2.side, Math.sin(a))));
+        const ty = Math.atan2(want[0], want[2]), tp = Math.asin(Math.max(-1, Math.min(1, want[1])));
+        let dy = ty - st.yaw; dy -= 2 * Math.PI * Math.round(dy / (2 * Math.PI));
+        const kk = Math.min(1, dt * (back ? 0.45 * Math.max(1, Math.min(st.speed, 2.5)) : 2)); st.yaw += dy * kk; st.pitch += (tp - st.pitch) * kk;
+      }
+      const F = st.fall, say = (k, cond, txt, ms) => { if (cond && !F.said[k]) { F.said[k] = 1; cap(txt, ms); } };
+      say('dark', F.r0 > 8 && rn < F.r0 * 0.55 && rn > 3.2, 'The shadow grows as fewer light paths can reach you.');
+      say('ps', rn < 3, 'Photon sphere (3M): light can orbit here.');
+      say('near', rn < 2.3, 'Inflow speed ' + Math.sqrt(2 / rn).toFixed(2) + ' c. Approaching the horizon.', 9000);
+      for (const [k, th] of [[1, 2.15], [2, 2.0], [3, 1.75]]) if (rn < th && !F.pulses.some(q => q.k === k)) F.pulses.push({ k, r: rn });
+      if (!st.crossed && rn < 2) { st.crossed = true; cap('Horizon crossed. Outgoing light now moves inward.', 10000); }
+      say('in', rn < 1.2, 'Light from outside still falls in after you: redshifted overhead, blueshifted at the edge of the shadow.', 10000);
+      say('deep', rn < 0.3 && !st.tornAt, 'Tidal stretching diverges toward the centre.', 7000);
+      if (!st.tornAt && tidal(rn) > TEAR) {
+        st.tornAt = rn; st.tearT = performance.now(); tearSound();
+        cap('Torn apart at r = ' + rn.toFixed(rn < 1 ? 3 : 1) + 'M (' + (rn > 2 ? 'outside' : 'inside') + ' the horizon): tidal acceleration exceeds about 100 g.', 9000);
+      }
+      const tearDone = st.tornAt && performance.now() - st.tearT >= 2600;
+      // torn apart well before the centre: that is the end of the trip
+      if (st.tornAt > 0.5 && tearDone) endFall(true);
+      else if ((rn < 0.012 || left <= 1e-9) && (!st.tornAt || tearDone)) endFall();
+    }
+    const rr = V.len(st.pos);
+    const beta = Math.sqrt(2 / rr), w = st.fall ? PH.wFall(st.fall.e, rr) : beta, gm = 1 / Math.sqrt(1 - w * w);
+    const farRate = gm * (1 + w) / (1 + beta);
+    st.tau += dTauStep; st.far += dTauStep * farRate;
+    const dtPG = dTauStep * gm; st.tPG += dtPG;
+    stepProbe(dtPG); probeArrivals();
+    if (st.fall) for (const q of st.fall.pulses) { if (q.r < 0.03) continue; const n = Math.min(300, Math.max(1, Math.ceil(dtPG / 0.004))); const h = dtPG / n; for (let i = 0; i < n && q.r > 0.03; i++) q.r += (1 - Math.sqrt(2 / q.r)) * h; }
+    if (!hist.length || st.tPG - hist[hist.length - 1].t > 0.01 * Math.max(1, rr / 10) || Math.abs(hist[hist.length - 1].r - rr) > 0.02 * rr) hist.push({ r: rr, a: Math.atan2(st.pos[2], st.pos[0]), t: st.tPG });
+    if (hist.length > 1500) hist.splice(0, hist.length - 1500);
+    updateAudio(rr, farRate, st.fall ? tidal(rr) : 0);
+    // ---- exposure
+    if (st.meanLum) { let target = Math.min(1.1, Math.max(0.0005, 0.42 / (st.meanLum + 0.03))); const deep = st.fall && rr < 2; if (deep) { target = 0.22 / Math.max(st.meanLum, 1e-6); if (st.hiLum) target = Math.min(target, (st.fall.autoLook && rr < 1.5 ? 6 : 1.6) / st.hiLum); } let rate = 2.5; if (deep) { if (!st.fall.lock) st.fall.lock = st.exposure; target = Math.min(400, Math.max(st.fall.lock / 60, target)); rate = window.__expRate || 2.2 * Math.max(1, Math.min(st.speed, 2.5)); } st.exposure = Math.exp(Math.log(st.exposure) + (Math.log(target) - Math.log(st.exposure)) * Math.min(1, dt * rate)); }
+    // ---- render
+    if (st.moved) { still = 0; st.moved = false; labelCache = null; } else still += dt;
+    const want = still > 0.15 ? Math.min(1.0, maxScale) : (isTouch ? 0.7 : 0.6);
+    if (want !== curScale) { curScale = want; ensureTargets(want); nAcc = 0; }
+    // spare the graphics card: at most 60 frames a second, and about 12 when nothing on screen is changing
+    const idle = still > 1.5 && !st.fall && !(st.probe && !st.probe.faded) && !laser;
+    if (now - lastDraw >= (idle ? 80 : 15.5)) {
+      lastDraw = now;
+      nAcc = still > 0.15 ? Math.min(nAcc + 1, 6) : 0;
+      draw(nAcc <= 1 ? 1 : 1 / nAcc, nAcc <= 1 ? [0, 0] : [Math.random() - 0.5, Math.random() - 0.5]);
+    }
+    if (!labelCache && still > 0.3 && now - labelTime > 500) { labelTime = now; computeLabels(); }
+    if (now - lastHud > 100) { lastHud = now; hud(rr, farRate, playK);
+      const dbg = $('dbg'); if (dbg.style.display === 'block') { const pr = st.probe; dbg.textContent = 'build 30\nfps ' + (1 / ftEma).toFixed(0) + '  scale ' + curScale + '/' + maxScale.toFixed(2) + '  DPR ' + DPR + '\ncanvas ' + canvas.width + 'x' + canvas.height + '  float ' + hasFloat + '\nexposure ' + st.exposure.toFixed(3) + '\nmeanLum ' + (st.meanLum || 0).toExponential(2) + '  maxLum ' + (st.maxLum || 0).toExponential(2) + '\nplayK ' + playK.toFixed(2) + '  dt ' + dt.toFixed(3) + (pr ? '\nprobe r ' + probeR(pr).toFixed(2) + ' seen ' + (pr.img ? pr.img.r.toFixed(2) + ' g ' + pr.img.g.toFixed(2) : 'none') + (pr.faded ? ' faded' : '') : ''); } }
+  }
+  drawFx();
+  try { drawMini(); drawBody(); } catch (e) { console.error(e); }
+  try { drawMap(); } catch (e) { console.error(e); }
+  try { drawCone(); } catch (e) { console.error(e); }
+}
+function drawMini(){
+  const box = $('miniBox'), F = st.fall, r = V.len(st.pos);
+  const show = false;
+  box.style.display = show ? 'block' : 'none'; if (!show) return;
+  const cv = $('mini'), R = cv.getBoundingClientRect(); if (cv.width !== Math.round(R.width * DPR)) { cv.width = Math.round(R.width * DPR); cv.height = Math.round(R.height * DPR); }
+  const W = cv.width, H = cv.height, c = cv.getContext('2d'), d = DPR, S = W * 0.44 / 3.2, cx = W / 2, cy = H * 0.62;
+  c.clearRect(0, 0, W, H);
+  c.setLineDash([3 * d, 3 * d]); c.strokeStyle = 'rgba(255,255,255,.35)'; c.lineWidth = 1 * d; c.beginPath(); c.arc(cx, cy, 3 * S, 0, 7); c.stroke(); c.setLineDash([]);
+  c.fillStyle = 'rgba(0,0,0,.6)'; c.strokeStyle = 'rgba(255,255,255,.85)'; c.beginPath(); c.arc(cx, cy, 2 * S, 0, 7); c.fill(); c.stroke();
+  c.fillStyle = '#d62728'; c.beginPath(); c.arc(cx, cy, 2.5 * d, 0, 7); c.fill();
+  c.font = 10 * d + 'px -apple-system, sans-serif'; c.fillStyle = 'rgba(230,236,255,.8)'; c.fillText('Horizon', cx + 2 * S * 0.72, cy + 2 * S * 0.72 + 10 * d); c.fillText('Photon sphere', cx + 3 * S * 0.6, cy - 3 * S * 0.82);
+  const offs = { 1: -9, 2: 0, 3: 9 };
+  for (const q of F.pulses) { const y = cy - q.r * S, x = cx + offs[q.k] * d; c.fillStyle = '#5fe3ff'; c.beginPath(); c.arc(x, y, 3.2 * d, 0, 7); c.fill(); c.fillStyle = 'rgba(160,240,255,.95)'; c.fillText(['', '①', '②', '③'][q.k], x + 4 * d, y - 3 * d); }
+  c.fillStyle = '#fff'; c.beginPath(); c.arc(cx + 18 * d, cy - r * S, 4 * d, 0, 7); c.fill(); c.fillText('You', cx + 25 * d, cy - r * S + 4 * d);
+  $('miniT').innerHTML = 'Cyan: outward light pulses. ① emitted outside the horizon, escapes slowly; ② emitted at the horizon, stays put; ③ emitted inside, falls inward.';
+}
+function drawBody(){
+  return;
+  const cv = $('bodyC'), R = cv.getBoundingClientRect(); if (!R.width) return; if (cv.width !== Math.round(R.width * DPR)) { cv.width = Math.round(R.width * DPR); cv.height = Math.round(R.height * DPR); }
+  const W = cv.width, H = cv.height, c = cv.getContext('2d'), d = DPR, cx = W * 0.5, cy = H * 0.44, u = 26 * d;
+  c.clearRect(0, 0, W, H);
+  const r = V.len(st.pos), ta = tidal(r), torn = !!st.tornAt;
+  c.font = 10.5 * d + 'px -apple-system, sans-serif'; c.fillStyle = 'rgba(230,236,255,.9)'; c.fillText('Tidal', 8 * d, 15 * d);
+  c.strokeStyle = 'rgba(255,190,140,.7)'; c.lineWidth = 1 * d; c.beginPath(); c.moveTo(W - 14 * d, 26 * d); c.lineTo(W - 14 * d, H - 60 * d); c.stroke();
+  c.beginPath(); c.moveTo(W - 18 * d, H - 66 * d); c.lineTo(W - 14 * d, H - 60 * d); c.lineTo(W - 10 * d, H - 66 * d); c.stroke();
+  c.save(); c.fillStyle = 'rgba(255,200,160,.8)'; c.fillText('↓', W - 19 * d, H - 34 * d); c.restore();
+  // free pebbles: nothing holds them together
+  c.save(); c.beginPath(); c.rect(0, 20 * d, W - 24 * d, H - 74 * d); c.clip();
+  c.fillStyle = 'rgba(140,240,210,.9)';
+  if (particles) for (const p of particles) { c.beginPath(); c.arc(cx + p.x * u, cy + p.y * u, 2.4 * d, 0, 7); c.fill(); }
+  // the body: a 1.8 m rod, head up, feet toward the centre
+  const half = 34 * d;
+  if (torn && !st.tornT) st.tornT = performance.now();
+  const sep = torn ? Math.min(26 * d, (performance.now() - st.tornT) / 1000 * 18 * d) : 0;
+  c.strokeStyle = torn ? '#ff8a6a' : '#ffffff'; c.lineWidth = 3 * d; c.lineCap = 'round';
+  if (!torn) { c.beginPath(); c.moveTo(cx, cy - half); c.lineTo(cx, cy + half); c.stroke(); }
+  else { c.beginPath(); c.moveTo(cx, cy - half - sep); c.lineTo(cx, cy - 3 * d - sep); c.stroke(); c.beginPath(); c.moveTo(cx, cy + 3 * d + sep); c.lineTo(cx, cy + half + sep); c.stroke(); }
+  c.restore();
+  c.fillStyle = 'rgba(255,255,255,.9)'; c.fillText('head', cx + 7 * d, cy - half + 4 * d); c.fillText('feet', cx + 7 * d, cy + half + 4 * d);
+  c.fillStyle = 'rgba(230,236,255,.9)'; c.fillText(fmtG(ta) + ' g', 8 * d, H - 38 * d);
+  c.fillStyle = torn ? '#ff9b7d' : 'rgba(160,240,200,.9)'; c.fillText(torn ? 'Body fails' : 'Body holds', 8 * d, H - 22 * d);
+  c.fillStyle = 'rgba(200,206,230,.6)'; c.font = 9.5 * d + 'px -apple-system, sans-serif'; c.fillText('Green: free test particles', 8 * d, H - 7 * d);
+}
+function endFall(torn){
+  if (st.ended) return;
+  st.ended = true; $('info').style.opacity = 0; clearTimeout(toast.t);
+  if (snd) { snd.master.gain.cancelScheduledValues(AC.currentTime); snd.master.gain.setValueAtTime(0, AC.currentTime); }
+  $('endTxt').innerHTML = '<div style="font-size:clamp(34px,7vw,64px);font-weight:700;letter-spacing:.04em">SINGULARITY</div><div style="font-size:clamp(17px,2.6vw,22px);opacity:.85;margin-top:10px">General relativity breaks down here.</div><div style="font-size:clamp(15px,2.2vw,18px);opacity:.6;margin-top:6px">Proper time from release: ' + fmtT(st.fall.total * Msec()) + '</div>';
+  if (torn) $('endTxt').innerHTML = '<div style="font-size:clamp(34px,7vw,64px);font-weight:800;letter-spacing:.04em;color:#ff3a26;text-shadow:0 0 24px rgba(255,40,20,.6)">SPAGHETTIFIED</div><div style="font-size:clamp(17px,2.6vw,22px);opacity:.85;margin-top:10px">Torn apart by tidal forces ' + fmtLen(st.tornAt * Mlen()) + ' from the centre, ' + (st.tornAt > 2 ? 'outside' : 'inside') + ' the horizon.</div><div style="font-size:clamp(15px,2.2vw,18px);opacity:.6;margin-top:6px">Proper time from release: ' + fmtT(st.fall.tf * Msec()) + '</div>';
+  $('endMsg').style.display = 'flex';
+}
+window.__adv = (T) => { for (let i = 0; i < 400; i++) { const dt = T / 400; st.tPG += dt; stepProbe(dt); } }; window.__st = st; window.__PH = PH; window.__runVerify = runVerify; window.__startFall = startFall; window.__dropProbe = dropProbe; window.__fire = fireLaser; window.__pimg = probeImage;
+window.__setOrbit = (r, el, az) => { st.mode = 'orbit'; st.orb.lr = st.orb.tlr = Math.log(r); if (el != null) st.orb.el = el; if (az != null) st.orb.az = az; setOrbitPos(); st.moved = true; updateModeUI(); };
+window.__ff = (k) => { if (st.fall) st.fall.tf = Math.min(st.fall.total * k, st.fall.total * 0.99999); };
+resize(); reset(); updateModeUI();
+requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
