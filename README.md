@@ -14,4 +14,4 @@ Fly through a wormhole into another universe, then turn back for home. Every pix
 
 <a href="https://yukyin.github.io/spacetime-edge/wormhole.html"><img src="play-wormhole.svg" alt="Play" width="150"></a>
 
-![Wormhole](preview-wormhole.png)
+![Wormhole](wormhole-preview.png)
