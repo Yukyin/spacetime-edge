@@ -30,7 +30,8 @@
   #menu .mh { color: rgba(200,206,230,.5); font-size: 10px; letter-spacing: .14em; text-transform: uppercase; padding: 4px 8px 6px; }
   #menu .mi { color: rgba(232,236,255,.9); padding: 6px 8px; border-radius: 4px; }
   #menu .mi.on { background: rgba(255,255,255,.1); color: #fff; }
-  #verifyBtn { right: 10px; top: 46px; } #sound { right: 10px; top: 82px; } #bhBtn { right: 10px; top: 118px; }
+  #menu .mi[data-go] { cursor: pointer; } #menu .mi[data-go]:hover { background: rgba(255,255,255,.06); }
+  #verifyBtn { right: 10px; top: 46px; } #bhBtn { right: 10px; top: 82px; }
   #modes { position: fixed; left: 50%; transform: translateX(-50%); bottom: 12px; display: flex; gap: 6px; }
   #modes .btn, #acts .btn { position: static; }
   #acts { position: fixed; right: 10px; bottom: 56px; display: flex; flex-direction: column; gap: 7px; align-items: flex-end; }
@@ -95,10 +96,9 @@
   <div id="fallLines" class="clk" style="display:none"></div>
   <div id="probeLines" class="clk" style="display:none"></div>
 </div>
-<div id="topR"><button class="btn" id="reset">Restart</button><button class="btn" id="menuBtn" aria-label="Scenes">☰</button></div>
-<div id="menu"><div class="mh">Scenes</div><div class="mi on">Black hole</div></div>
+<div id="topR"><button class="btn" id="sound">Sound: off</button><button class="btn" id="reset">Restart</button><button class="btn" id="menuBtn" aria-label="Scenes">☰</button></div>
+<div id="menu"><div class="mh">Scenes</div><div class="mi on">Black hole</div><div class="mi" data-go="wormhole.html">Wormhole</div></div>
 <button class="btn" id="verifyBtn">Validation</button>
-<button class="btn" id="sound">Sound: off</button>
 <button class="btn" id="bhBtn">Switch black hole</button>
 <div id="zoom"><div class="track"></div><div class="knob"></div></div>
 <div id="acts">
@@ -525,6 +525,7 @@ $('mMap').onclick = () => { st.overview = !st.overview; updateModeUI(); };
 $('mCone').onclick = () => { st.cone = !st.cone; updateModeUI(); };
 $('mFish').onclick = () => { st.fish = !st.fish; if (st.fall) st.fall.userFish = true; st.moved = true; labelCache = null; updateModeUI(); };
 $('menuBtn').onclick = e => { e.stopPropagation(); const m = $('menu'); m.style.display = m.style.display === 'block' ? 'none' : 'block'; };
+document.querySelectorAll('#menu .mi[data-go]').forEach(el => el.onclick = () => { location.href = el.dataset.go; });
 window.addEventListener('pointerdown', e => { const m = $('menu'); if (m.style.display === 'block' && !m.contains(e.target) && e.target !== $('menuBtn')) m.style.display = 'none'; });
 $('reset').onclick = reset; $('endReset').onclick = reset;
 $('bhBtn').onclick = () => { bhi = (bhi + 1) % BHS.length; st.tornAt = null; updateModeUI(); toast(BHS[bhi].name, 3000); };

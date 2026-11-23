@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Spacetime Edge · Wormhole</title>
+<style>
+  html,body{margin:0;height:100%;background:#000;overflow:hidden;font-family:-apple-system,Segoe UI,Helvetica,Arial,sans-serif;color:#e8ebff;touch-action:none}
+  canvas{position:fixed;inset:0;width:100%;height:100%;display:block}
+  #hud{position:fixed;left:12px;top:10px;font-size:12px;line-height:1.6;text-shadow:0 1px 3px #000;pointer-events:none}
+  #hud .big{font-size:30px;font-weight:300;letter-spacing:.01em}
+  #hud .big small{font-size:14px;opacity:.6;margin-left:4px}
+  #hud .side{opacity:.75}
+  #hint{font-size:11.5px;opacity:.55;margin-top:4px}
+  .btn{position:fixed;white-space:nowrap;padding:5px 10px;border-radius:5px;border:1px solid rgba(255,255,255,.13);background:rgba(8,10,18,.55);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);color:rgba(232,236,255,.9);font-size:11.5px;letter-spacing:.02em;cursor:pointer;font-family:inherit}
+  .btn:hover{border-color:rgba(255,255,255,.32)}
+  #emb{position:fixed;left:10px;bottom:34px;width:230px;height:230px;inset:auto auto 34px 10px}
+  #zoom{position:fixed;right:10px;top:50%;transform:translateY(-50%);width:30px;height:230px;border-radius:6px;background:rgba(8,10,18,.55);border:1px solid rgba(255,255,255,.13)}
+  #zoom .knob{position:absolute;left:7px;width:16px;height:16px;border-radius:50%;background:#e6e9f7;margin-top:-8px}
+  #zoom .tick{position:absolute;right:36px;color:rgba(200,206,230,.75);font-size:10.5px;white-space:nowrap;transform:translateY(-50%);pointer-events:none}
+  #endMsg{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;background:rgba(0,0,0,.55);color:#eef;text-align:center;font-size:15px;line-height:1.8;padding:30px;box-sizing:border-box;opacity:0;pointer-events:none;transition:opacity 1.2s;z-index:15}
+  #endMsg.on{opacity:1;pointer-events:auto}
+  #endMsg .btn{position:static;margin-top:22px;font-size:15px;padding:8px 18px}
+  #topR{position:fixed;right:10px;top:10px;display:flex;gap:6px;z-index:10}
+  #topR .btn{position:static}
+  #menuBtn{font-size:13px !important;line-height:1;padding:5px 9px !important}
+  #menu{position:fixed;right:10px;top:44px;min-width:150px;display:none;z-index:12;background:rgba(8,10,18,.85);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.13);border-radius:6px;padding:6px;font-size:12px}
+  #menu .mh{color:rgba(200,206,230,.5);font-size:10px;letter-spacing:.14em;text-transform:uppercase;padding:4px 8px 6px}
+  #menu .mi{color:rgba(232,236,255,.9);padding:6px 8px;border-radius:4px;cursor:pointer}
+  #menu .mi:hover{background:rgba(255,255,255,.06)}
+  #menu .mi.on{background:rgba(255,255,255,.1);color:#fff;cursor:default}
+  #verifyBtn{left:10px;bottom:14px;font-size:11px !important;padding:4px 9px !important;opacity:.5}
+  #verify{position:fixed;inset:0;background:rgba(4,5,12,.985);color:#e6e9f7;font-size:13.5px;line-height:1.65;overflow-y:auto;display:none;padding:26px 20px 60px;box-sizing:border-box;z-index:20}
+  #verify h2{font-size:18px;margin:0 0 4px;color:#fff;font-weight:600}
+  #verify .sub{color:rgba(200,206,230,.65);margin-bottom:16px;max-width:860px}
+  #verify table{border-collapse:collapse;width:100%;max-width:900px}
+  #verify th,#verify td{text-align:left;padding:8px 9px;border-bottom:1px solid rgba(255,255,255,.09);vertical-align:top}
+  #verify th{color:rgba(200,206,230,.7);font-weight:500;font-size:12.5px}
+  #verify td.n{font-variant-numeric:tabular-nums;white-space:nowrap}
+  #verify td.ok{color:#8ff0b0;white-space:nowrap}
+  #verify .note{max-width:900px;color:rgba(210,214,236,.75);margin-top:18px;font-size:12.5px}
+  #verify .vh{color:#fff;font-size:13.5px;font-weight:600;margin:16px 0 6px}
+  #verify .vl{margin:0;padding-left:18px} #verify .vl li{margin-bottom:4px}
+  #verify .close{position:fixed;right:12px;top:10px}
+  #acts{position:fixed;right:10px;bottom:56px;display:flex;flex-direction:column;gap:7px;align-items:flex-end;z-index:10}
+  #acts .btn{position:static}
+  #fly{padding:7px 12px;font-size:12.5px;border-color:rgba(140,190,255,.55);color:#cfe3ff;background:rgba(8,20,40,.5)}
+</style></head><body>
+<canvas id="c"></canvas>
+<div id="hud"><div class="big" id="dist">40.0<small>R</small></div><div class="side" id="side">Home universe</div><div id="hint">Drag to look around. W / S or scroll to move.</div></div>
+<div id="topR"><button class="btn" id="sound">Sound: off</button><button class="btn" id="home">Restart</button><button class="btn" id="menuBtn" aria-label="Scenes">☰</button></div>
+<div id="menu"><div class="mh">Scenes</div><div class="mi" data-go="index.html">Black hole</div><div class="mi on">Wormhole</div></div>
+<button class="btn" id="verifyBtn">Validation</button>
+<div id="verify">
+  <button class="btn close" id="verifyClose">Back</button>
+  <h2>Validation</h2>
+  <div class="sub">The ray tracer that draws the scene, run here on test cases with known exact answers.</div>
+  <table id="vt"><thead><tr><th></th><th>Exact</th><th>Renderer</th><th>Error</th><th>Formula</th></tr></thead><tbody></tbody></table>
+  <div class="note" id="vnote"></div>
+</div>
+<div id="acts"><button class="btn" id="speedBtn">Speed ×1</button><button class="btn" id="fly">Fly through</button></div>
+<div id="endMsg"><div style="font-size:clamp(34px,7vw,64px);font-weight:800;letter-spacing:.04em;color:#ff3a26;text-shadow:0 0 24px rgba(255,40,20,.6)">PINCHED OFF</div><div style="font-size:clamp(17px,2.6vw,22px);opacity:.85;margin-top:10px">Causally disconnected from home.</div><div style="font-size:clamp(15px,2.2vw,18px);opacity:.6;margin-top:6px">The throat became a black hole 5 throat radii away.</div><button class="btn" id="again">Restart</button></div>
+<div id="zoom"><div class="knob" id="knob"></div></div>
+<canvas id="emb"></canvas>
+<script>
+const $ = id => document.getElementById(id);
+const canvas = $('c'), gl = canvas.getContext('webgl2', { antialias: false });
+const VS = `#version 300 es
+in vec2 p; void main(){ gl_Position = vec4(p, 0.0, 1.0); }`;
+const FS = `#version 300 es
+precision highp float;
+out vec4 o;
+uniform vec2 uRes, uJit; uniform vec3 uDir, uF, uR, uU; uniform float uL, uFy, uExp, uM, uTc, uPulse, uPh0; uniform vec3 uPDir;
+float hash13(vec3 p){ p = fract(p * 0.1031); p += dot(p, p.zyx + 31.32); return fract((p.x + p.y) * p.z); }
+float vnoise(vec3 p){
+  vec3 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
+  float a = hash13(i), b = hash13(i + vec3(1,0,0)), c = hash13(i + vec3(0,1,0)), d = hash13(i + vec3(1,1,0));
+  float e = hash13(i + vec3(0,0,1)), g = hash13(i + vec3(1,0,1)), h = hash13(i + vec3(0,1,1)), k = hash13(i + vec3(1,1,1));
+  return mix(mix(mix(a,b,f.x), mix(c,d,f.x), f.y), mix(mix(e,g,f.x), mix(h,k,f.x), f.y), f.z);
+}
+float fbm(vec3 p){ float s = 0.0, a = 0.5; for (int i = 0; i < 4; i++) { s += a * vnoise(p); p = p * 2.03 + 7.1; a *= 0.5; } return s; }
+vec3 bb(float T){
+  T = clamp(T, 1000.0, 40000.0) / 100.0;
+  float r = T <= 66.0 ? 1.0 : clamp(1.292936 * pow(T - 60.0, -0.1332047), 0.0, 1.0);
+  float g = T <= 66.0 ? clamp(0.3900816 * log(T) - 0.6318414, 0.0, 1.0) : clamp(1.1298909 * pow(T - 60.0, -0.0755148), 0.0, 1.0);
+  float b = T >= 66.0 ? 1.0 : (T <= 19.0 ? 0.0 : clamp(0.5432068 * log(T - 10.0) - 1.1962541, 0.0, 1.0));
+  return pow(vec3(r, g, b), vec3(2.2));
+}
+vec3 tintOf(float T){ vec3 t = bb(T); return t / max(max(t.r, t.g), max(t.b, 1e-4)); }
+// the sky at infinity, seen with frequency factor g (g > 1 blueshift)
+vec3 sky(vec3 d, float g){
+  float boostI = min(pow(g, 4.0), 60.0);
+  vec3 neb = vec3(0.0);
+  vec3 nb = normalize(vec3(0.25, 0.92, -0.3));
+  float lat = dot(d, nb);
+  float band = exp(-lat * lat * 14.0);
+  float n1 = fbm(d * 3.5) * fbm(d * 7.0 + 3.0);
+  float lum = 0.0016 + band * (0.02 + 0.03 * n1 * 1.6);
+  float dust = smoothstep(0.38, 0.62, fbm(d * 9.0 + 11.0));
+  lum *= 1.0 - band * dust * 0.6;
+  vec3 shift = tintOf(6000.0 * g) / tintOf(6000.0);
+  vec3 col = tintOf(5200.0 * g) * lum * 1.1;
+  float m1 = smoothstep(0.52, 0.78, fbm(d * 2.1 + 5.0)), m2 = smoothstep(0.55, 0.8, fbm(d * 2.6 + 17.0)), m3 = smoothstep(0.56, 0.82, fbm(d * 1.8 + 31.0));
+  col += shift * (vec3(0.85, 0.18, 0.55) * m1 * 0.05 + vec3(0.12, 0.35, 1.0) * m2 * 0.05 + vec3(0.1, 0.85, 0.7) * m3 * 0.035) * (0.6 + 0.8 * fbm(d * 6.0 + 2.0));
+  for (int i = 0; i < 3; i++) {
+    float sc = i == 0 ? 70.0 : (i == 1 ? 150.0 : 320.0);
+    vec3 q = d * sc; vec3 c = floor(q); vec3 f = fract(q);
+    float h = hash13(c);
+    float th = (i == 0 ? 0.992 : 0.975) - band * (i == 2 ? 0.05 : 0.01);
+    if (h > th) {
+      vec3 sp = vec3(hash13(c + 1.3), hash13(c + 2.7), hash13(c + 5.1)) * 0.6 + 0.2;
+      float w = i == 0 ? 0.09 : 0.11;
+      float s = exp(-dot(f - sp, f - sp) / (w * w * 0.25));
+      float mag = pow((h - th) / (1.0 - th), 1.5) * (i == 0 ? 9.0 : (i == 1 ? 3.0 : 1.2));
+      float t = hash13(c + 9.0);
+      vec3 tc = tintOf(mix(2600.0, 16000.0, t) * g); tc = pow(tc, vec3(1.7));
+      col += tc / max(max(tc.r, tc.g), max(tc.b, 1e-4)) * s * mag;
+    }
+  }
+  return col * boostI;
+}
+// home: blue and violet gas clouds, blue-white stars
+vec3 skyHome(vec3 d){
+  vec3 c = vec3(0.004, 0.006, 0.016);
+  float n = fbm(d * 2.2 + 40.0), det = fbm(d * 6.0 + 5.0);
+  float m = smoothstep(0.32, 0.72, n);
+  vec3 hue = mix(vec3(0.10, 0.28, 1.0), vec3(0.50, 0.22, 1.0), smoothstep(0.35, 0.7, fbm(d * 1.5 + 70.0)));
+  c += m * (0.5 + 0.9 * det) * hue * 0.055;
+  c += smoothstep(0.58, 0.82, fbm(d * 3.2 + 90.0)) * (0.5 + det) * vec3(0.10, 0.75, 0.95) * 0.03;
+  c *= 1.0 - 0.55 * smoothstep(0.55, 0.75, fbm(d * 8.0 + 13.0));
+  for (int i = 0; i < 3; i++) {
+    float sc = i == 0 ? 70.0 : (i == 1 ? 150.0 : 320.0);
+    vec3 q = d * sc + 91.0; vec3 cc = floor(q); vec3 f = fract(q);
+    float h = hash13(cc);
+    float th = i == 0 ? 0.99 : (i == 1 ? 0.97 : 0.94);
+    if (h > th) {
+      vec3 sp = vec3(hash13(cc + 1.3), hash13(cc + 2.7), hash13(cc + 5.1)) * 0.6 + 0.2;
+      float w = i == 0 ? 0.09 : 0.11;
+      float st = exp(-dot(f - sp, f - sp) / (w * w * 0.25));
+      float mag = pow((h - th) / (1.0 - th), 1.5) * (i == 0 ? 8.0 : (i == 1 ? 2.6 : 1.0));
+      c += tintOf(mix(8000.0, 25000.0, hash13(cc + 9.0))) * st * mag;
+    }
+  }
+  return c;
+}
+// the far universe: the full colour sky, with extra glowing clouds in pink, gold and teal
+vec3 skyFar(vec3 d){
+  vec3 q = normalize(vec3(d.z, -d.x, d.y));
+  vec3 c = sky(q, 1.0) * 1.3;
+  float det = 0.55 + 0.9 * fbm(d * 6.5 + 21.0);
+  c += vec3(1.0, 0.30, 0.55) * smoothstep(0.50, 0.78, fbm(d * 2.0 + 101.0)) * det * 0.045;
+  c += vec3(1.0, 0.72, 0.30) * smoothstep(0.54, 0.80, fbm(d * 2.4 + 131.0)) * det * 0.035;
+  c += vec3(0.15, 0.95, 0.75) * smoothstep(0.55, 0.82, fbm(d * 2.8 + 161.0)) * det * 0.03;
+  c *= 1.0 - 0.45 * smoothstep(0.58, 0.78, fbm(d * 9.0 + 47.0));
+  return c;
+}
+vec3 aces(vec3 x){ return clamp((x * (2.51 * x + 0.03)) / (x * (2.43 * x + 0.59) + 0.14), 0.0, 1.0); }
+// clock rate at the throat region: A = 1 - 2m/R, R = sqrt(1 + l^2). m = 0 is the open wormhole,
+// m = 1/2 puts a horizon on the throat (the collapsed, black hole state)
+float Af(float l){ return max(1.0 - 2.0 * uM / sqrt(1.0 + l * l), 1e-4); }
+float acc(float l, float b){
+  // pl' for ds^2 = -A dt^2 + dl^2 + (1 + l^2) dOmega^2, photon energy 1
+  float r2 = 1.0 + l * l, r = sqrt(r2), A = Af(l);
+  float Al = 2.0 * uM * l / (r2 * r);
+  return -Al / (2.0 * A * A) + b * b * l / (r2 * r2);
+}
+vec3 shifted(vec3 c, float g){ return c * (tintOf(6000.0 * g) / tintOf(6000.0)) * pow(g, 4.0); }
+vec3 trace(vec2 px){
+  vec2 uv = (px * 2.0 - uRes) / min(uRes.x, uRes.y);
+  vec3 d = normalize(uF * uFy + uv.x * uR + uv.y * uU);
+  vec3 er = uDir;
+  float ca = dot(d, er);
+  vec3 tv = d - ca * er; float sa = length(tv);
+  vec3 et = sa > 1e-6 ? tv / sa : normalize(cross(er, vec3(0.13, 1.0, 0.27)));
+  float l = uL, s = l >= 0.0 ? 1.0 : -1.0;
+  float A0 = Af(l), sq0 = sqrt(A0);
+  float b = sqrt(1.0 + l * l) * sa / sq0;    // impact parameter, conserved (static observer's frame)
+  float pl = s * ca / sq0, ph = 0.0;
+  float Lesc = max(abs(uL) * 1.6, 40.0);
+  vec3 col = vec3(0.0);
+  bool crossed = false; float pr = uPulse; float tau = 0.0, gW = 1.0;   // pr: how lit the pulsar is in the light this ray brings;   // tau: time light takes from the throat to you
+  for (int i = 0; i < 700; i++) {
+    float r2 = 1.0 + l * l, r = sqrt(r2);
+    if (abs(l) > Lesc && l * pl > 0.0) {
+      float sg = l >= 0.0 ? 1.0 : -1.0;
+      vec3 pos = cos(ph) * er + sin(ph) * et, tan_ = -sin(ph) * er + cos(ph) * et;
+      vec3 dir = normalize(sg * pl * sqrt(Af(l)) * pos + (b * sqrt(Af(l)) / r) * tan_);
+      col = l > 0.0 ? skyHome(dir) : skyFar(dir);
+      if (l > 0.0) {   // a pulsar in the home sky, flashing once a second of its own time
+        float ang = acos(clamp(dot(dir, uPDir), -1.0, 1.0));
+        col += vec3(0.75, 0.88, 1.0) * (exp(-ang * ang / 0.0015) * (0.15 + 8.0 * pr));
+      }
+      col = shifted(col, sqrt(Af(l)) / sq0);
+      if (crossed) col = shifted(col, gW);
+      break;
+    }
+    float h = 0.06 * r * sqrt(Af(l));
+    float l1 = l, p1 = pl;                         float k1l = p1, k1p = acc(l1, b), k1h = b / (1.0 + l1*l1);
+    float l2 = l + 0.5*h*k1l, p2 = pl + 0.5*h*k1p; float k2l = p2, k2p = acc(l2, b), k2h = b / (1.0 + l2*l2);
+    float l3 = l + 0.5*h*k2l, p3 = pl + 0.5*h*k2p; float k3l = p3, k3p = acc(l3, b), k3h = b / (1.0 + l3*l3);
+    float l4 = l + h*k3l, p4 = pl + h*k3p;         float k4l = p4, k4p = acc(l4, b), k4h = b / (1.0 + l4*l4);
+    float lPrev = l, phPrev = ph; float iA0 = 1.0 / Af(l);
+    l  += h / 6.0 * (k1l + 2.0*k2l + 2.0*k3l + k4l);
+    pl += h / 6.0 * (k1p + 2.0*k2p + 2.0*k3p + k4p);
+    ph += h / 6.0 * (k1h + 2.0*k2h + 2.0*k3h + k4h);
+    tau += 0.5 * h * (iA0 + 1.0 / Af(l));
+    if (lPrev * l <= 0.0) {
+      crossed = true;
+      // light that crossed the throat after the horizon formed can never reach you; what crossed just before arrives last, reddened
+      float margin = tau - uTc;
+      if (margin <= 0.0) { col = vec3(0.0); break; }
+      gW = 1.0 - exp(-margin / 1.9);
+      // this ray carries older light the longer its path: its flash phase is the pulsar's phase back when it crossed
+      if (uTc > -1e8) { float G = margin - 1.9 * (1.0 - exp(-margin / 1.9)); float ph = uPh0 - G / 1.8; pr = exp(-(ph - floor(ph)) / 0.12); }
+    }
+    // stay on the light cone: pl^2 + b^2/R^2 = 1/A
+    float rn = 1.0 + l * l, need = max(0.0, 1.0 / Af(l) - b * b / rn);
+    pl = (pl >= 0.0 ? 1.0 : -1.0) * sqrt(need);
+  }
+  return col;
+}
+void main(){
+  // four rays per pixel, so fine detail squeezed into the throat does not flicker
+  vec2 p0 = gl_FragCoord.xy + uJit;
+  vec3 col = trace(p0 + vec2(-0.125, -0.375)) + trace(p0 + vec2(0.375, -0.125)) + trace(p0 + vec2(0.125, 0.375)) + trace(p0 + vec2(-0.375, 0.125));
+  o = vec4(pow(aces(col * 0.25 * uExp), vec3(1.0 / 2.2)), 1.0);
+}`;
+</script>
+<script>
+function sh(t, s){ const x = gl.createShader(t); gl.shaderSource(x, s); gl.compileShader(x); if (!gl.getShaderParameter(x, gl.COMPILE_STATUS)) { window.__shaderErr = gl.getShaderInfoLog(x); throw new Error(gl.getShaderInfoLog(x)); } return x; }
+const prog = gl.createProgram(); gl.attachShader(prog, sh(gl.VERTEX_SHADER, VS)); gl.attachShader(prog, sh(gl.FRAGMENT_SHADER, FS)); gl.linkProgram(prog); gl.useProgram(prog);
+const buf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, buf); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 3,-1, -1,3]), gl.STATIC_DRAW);
+const loc = gl.getAttribLocation(prog, 'p'); gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+const U = {}; ['uRes','uJit','uDir','uF','uR','uU','uL','uFy','uExp','uM','uTc','uPulse','uPDir','uPh0'].forEach(n => U[n] = gl.getUniformLocation(prog, n));
+
+const V = { add:(a,b)=>[a[0]+b[0],a[1]+b[1],a[2]+b[2]], mul:(a,s)=>[a[0]*s,a[1]*s,a[2]*s], dot:(a,b)=>a[0]*b[0]+a[1]*b[1]+a[2]*b[2],
+  cross:(a,b)=>[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]], norm:a=>{const l=Math.hypot(...a)||1;return [a[0]/l,a[1]/l,a[2]/l];} };
+const DIR0 = V.norm([0.0, 0.12, 1.0]); let DIR = DIR0.slice(); const AZ_E = V.norm(V.cross(V.mul(DIR0, -1), [0, 1, 0]));   // where you are, seen from the throat
+const st = { speed: 1, L: 40, yaw: 0, pitch: 0, fly: null, moved: true, still: 0, m: 0, fade: 1, tc: -1e9, col: null, cam: null, keys: {}, trail: [], pdir: V.norm([1, 0.16, 0]), pph: 0, pulse: 0, pg: 1 };
+const L_MAX = 60;
+
+function basis(){
+  // orientation relative to "facing the throat", kept continuous through it
+  const inward = V.mul(DIR, -1), up0 = [0, 1, 0];
+  let R0 = V.norm(V.cross(inward, up0)), U0 = V.cross(R0, inward);
+  const cy = Math.cos(st.yaw), sy = Math.sin(st.yaw), cp = Math.cos(st.pitch), sp = Math.sin(st.pitch);
+  let F = V.add(V.mul(V.add(V.mul(inward, cy), V.mul(R0, sy)), cp), V.mul(U0, sp));
+  F = V.norm(F);
+  let R = V.norm(V.cross(F, U0)), Uu = V.cross(R, F);
+  if (st.roll) { const cr = Math.cos(st.roll), sr = Math.sin(st.roll), R2 = V.add(V.mul(R, cr), V.mul(Uu, sr)); Uu = V.add(V.mul(Uu, cr), V.mul(R, -sr)); R = R2; }
+  if (st.L < 0) {   // on the far side the radial direction is mirrored in these coordinates
+    const refl = v => V.add(v, V.mul(DIR, -2 * V.dot(v, DIR)));
+    F = refl(F); R = refl(R); Uu = refl(Uu);
+  }
+  return { F, R, U: Uu };
+}
+
+function camFrom(Fw){
+  const refl = v => st.L < 0 ? V.add(v, V.mul(DIR, -2 * V.dot(v, DIR))) : v;
+  const inward = V.mul(DIR, -1), R0 = V.norm(V.cross(inward, [0, 1, 0])), U0 = V.cross(R0, inward);
+  const Fp = refl(V.norm(Fw)), Rr = V.norm(V.cross(Fp, U0)), Uu = V.cross(Rr, Fp);
+  return { F: refl(Fp), R: refl(Rr), U: refl(Uu) };
+}
+
+let DPR = Math.min(window.devicePixelRatio || 1, 2), scale = 0.7;
+function resize(){
+  const w = Math.round(innerWidth * DPR * scale), h = Math.round(innerHeight * DPR * scale);
+  if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; st.moved = true; }
+}
+// slider: signed distance, fine near the throat
+const zoom = $('zoom'), knob = $('knob'), K = 3.2;
+const LtoY = L => 0.5 - Math.asinh(L / L_MAX * Math.sinh(K)) / K / 2;
+const YtoL = y => L_MAX * Math.sinh((0.5 - y) * 2 * K) / Math.sinh(K);
+[[40, '40R'], [10, '10R'], [0, 'Throat'], [-10, '10R'], [-40, '40R']].forEach(([L, t]) => {
+  const d = document.createElement('div'); d.className = 'tick'; d.textContent = t; d.style.top = (12 + LtoY(L) * (230 - 24)) + 'px'; zoom.appendChild(d);
+});
+function setL(L){ st.L = Math.max(-L_MAX, Math.min(st.col && st.L < 0 ? Math.max(st.L, -2.5) : L_MAX, L)); st.moved = true; }
+function zoomFromEvent(e){ if (st.fly) return; const r = zoom.getBoundingClientRect(); const y = Math.min(1, Math.max(0, (e.clientY - r.top - 12) / (r.height - 24))); st.fly = null; setL(YtoL(y)); }
+let zDrag = false;
+zoom.addEventListener('pointerdown', e => { zDrag = true; zoom.setPointerCapture(e.pointerId); zoomFromEvent(e); e.stopPropagation(); });
+zoom.addEventListener('pointermove', e => { if (zDrag) zoomFromEvent(e); });
+zoom.addEventListener('pointerup', () => zDrag = false);
+addEventListener('wheel', e => { if (st.fly) return; const s = Math.sign(st.L) || 1; let a = Math.abs(st.L) * Math.exp(e.deltaY * 0.0015); a = Math.max(0, a); if (e.deltaY < 0 && a < 0.3) { setL(-s * 0.3); } else setL(s * a); e.preventDefault(); }, { passive: false });
+// look around
+let drag = null;
+canvas.addEventListener('pointerdown', e => { drag = { x: e.clientX, y: e.clientY }; canvas.setPointerCapture(e.pointerId); });
+canvas.addEventListener('pointermove', e => { if (!drag) return; const k = 2.2 / Math.min(innerWidth, innerHeight);
+  st.yaw -= (e.clientX - drag.x) * k; st.pitch = Math.max(-1.45, Math.min(1.45, st.pitch + (e.clientY - drag.y) * k)); drag = { x: e.clientX, y: e.clientY }; st.moved = true; if (st.fly) st.fly.userLook = true; });
+canvas.addEventListener('pointerup', () => drag = null);
+
+$('fly').onclick = () => {
+  // cross over, swing round in a wide arc and head home; the ordinary matter you carried through tips the throat and it closes
+  if (st.col || st.fly) return;
+  st.trail = [];
+  if (st.L < 0) { startArc(); return; }
+  st.fly = { ph: 'out', from: st.L, to: 4, t: 0, T: 5.5 };
+};
+$('speedBtn').onclick = () => { st.speed = st.speed === 1 ? 4 : st.speed === 4 ? 0.25 : 1; $('speedBtn').textContent = 'Speed ×' + st.speed; };
+$('again').onclick = () => $('home').onclick();
+$('home').onclick = () => { $('endMsg').classList.remove('on'); st.pdir = V.norm([1, 0.16, 0]); st.pph = 0; st.ph0 = undefined; st.phr = undefined; st.prevL = 40; st.fly = null; st.L = 40; st.yaw = 0; st.pitch = 0; st.roll = 0; st.zoom = 0; st.m = 0; st.fade = 1; st.tc = -1e9; st.col = null; st.cam = null; st.trail = []; DIR = DIR0.slice(); st.moved = true; $('acts').style.display = ''; };
+
+// distance is stepped evenly in log(1 + |l|/6): the view changes at a steady rate,
+// quicker across empty space where little changes, gentler near the throat where everything does
+const LC2 = 3, toS2 = L => Math.sign(L) * Math.log(1 + Math.abs(L) / LC2), fromS2 = x => Math.sign(x) * LC2 * (Math.exp(Math.abs(x)) - 1);
+const LC = 6, toS = L => Math.sign(L) * Math.log(1 + Math.abs(L) / LC), fromS = x => Math.sign(x) * LC * (Math.exp(Math.abs(x)) - 1);
+// the pulsar sits a little off the exact line through the throat, so its ring is uneven, as real ones are
+const PULSAR_OFF = [0, 0.035, 0.015];
+function startArc(){
+  // a U-turn, facing the way you go, like a car turning round; then straight back toward the throat to stop 7R out
+  const n = DIR.slice(), e = V.norm(V.cross(V.mul(n, -1), [0, 1, 0]));
+  const v0 = st.fly && st.fly.vEnd ? st.fly.vEnd : 3;
+  st.fly = { ph: 'turn', n, e, x: Math.sqrt(1 + st.L * st.L), y: 0, psi: 0, v0, t: 0 };
+  if (!st.col) st.col = { t: 0 };   // what you carried through starts to tip the throat
+}
+function step(dt){
+  const f = st.fly; if (!f) return;
+  f.t += dt;
+  if (f.ph === 'out') {
+    // even steps in log(1 + |l|/3): quick across empty space, slow at the throat so you see the two skies swap; no stop at the end
+    const u = Math.min(1, f.t / f.T), ai = 0.12, vmax = 1 / (1 - ai / 2);
+    const e = u < ai ? vmax * u * u / (2 * ai) : vmax * (u - ai / 2);
+    const s0 = toS2(f.from), s1 = toS2(f.to);
+    setL(fromS2(s0 + (s1 - s0) * e));
+    if (!f.userLook) { st.yaw += (0 - st.yaw) * Math.min(1, dt * 2.5); st.pitch += (0 - st.pitch) * Math.min(1, dt * 2.5); }
+    if (u >= 1) { const vEnd = (Math.abs(st.L) + LC2) * Math.abs(s1 - s0) * vmax / f.T; st.fly = { ph: 'look', t: 0, v0: vEnd }; }
+    return;
+  }
+  if (f.ph === 'look') {
+    // ease off a little way out, tilt slowly up to see the rim (blue home above, the far sky's colours below),
+    // hold it, tilt back level, then pick up speed and dive straight through
+    const t = f.t, sm = x => { x = Math.min(1, Math.max(0, x)); return x * x * (3 - 2 * x); };
+    let v = f.v0 + (0.5 - f.v0) * sm(t / 1.2);
+    v += (2.2 - 0.5) * sm((t - 4.6) / 1.5);
+    setL(st.L - v * dt);
+    const up = 0.5 * (sm((t - 0.4) / 2.4) - sm((t - 4.0) / 0.7));   // tilt up slowly, come back level briskly
+    st.zoom = up / 0.5;   // the lens closes in a little while you look, so the rim fills more of the view
+    if (!f.userLook) { st.yaw = 0; st.pitch = up; st.roll = 0; }
+    if (st.L <= -2) { st.yaw = 0; st.pitch = 0; st.zoom = 0; st.fly = { vEnd: v }; startArc(); }
+    return;
+  }
+  if (f.ph === 'throat') {
+    // just before going in, look up: blue home above, the far sky's colours below, the seam arching between;
+    // straighten up and go in; just through, look right: colours left, blue right, the seam slanting across; then carry on
+    const u = Math.min(1, f.t / f.T), sm = x => { x = Math.min(1, Math.max(0, x)); return x * x * (3 - 2 * x); };
+    const seg = (a, b) => sm((u - a) / (b - a));
+    let L = 1.8 - 1.0 * seg(0, 0.28);            // creep in to 0.8R while looking up
+    L -= 0.4 * seg(0.28, 0.42);                  // straighten up, close to 0.4R
+    L -= 0.5 * seg(0.42, 0.78);                  // through the throat, slowly, then a look to the right
+    L -= 0.5 * seg(0.78, 1);                     // and on
+    setL(L);
+    const up = 0.7 * (seg(0.05, 0.22) - seg(0.28, 0.42));
+    const side = seg(0.6, 0.7) - seg(0.8, 0.9);
+    if (!f.userLook) { st.yaw = 1.4 * side; st.pitch = up + 0.2 * side; st.roll = 0.6 * side; }
+    if (u >= 1) { st.yaw = 0; st.pitch = 0; st.roll = 0; st.fly = { vEnd: 0.4 }; startArc(); }
+    return;
+  }
+  if (f.ph === 'turn') {
+    // start turning the moment you are through, tightening as you go; facing the way you fly
+    const ct = f.x || f.y ? -(Math.cos(f.psi) * f.x + Math.sin(f.psi) * f.y) / Math.hypot(f.x, f.y) : -1;   // how nearly you face the throat
+    const vUp = f.v0 + (6 - f.v0) * Math.min(1, f.t / 2), kd = Math.min(1, Math.max(0, (ct - 0.2) / 0.8));
+    const v = vUp + (1.8 - vUp) * kd * kd * (3 - 2 * kd), w = Math.min(0.6, 0.05 + 0.2 * f.t);   // ease to the approach speed as you come round
+    f.x += v * Math.cos(f.psi) * dt; f.y += v * Math.sin(f.psi) * dt; f.psi += w * dt;
+    const X = V.add(V.mul(f.n, f.x), V.mul(f.e, f.y)), Rr = Math.hypot(f.x, f.y);
+    const head = V.add(V.mul(f.n, Math.cos(f.psi)), V.mul(f.e, Math.sin(f.psi)));
+    DIR = V.norm(X); setL(-Math.sqrt(Math.max(Rr * Rr - 1, 0)));
+    st.cam = camFrom(head);
+    if (-(Math.cos(f.psi) * f.x + Math.sin(f.psi) * f.y) / Rr > 0.9995) {   // pointing at the throat: straighten out
+      st.cam = null; st.yaw = Math.PI; st.pitch = 0;
+      st.pdir = V.norm(V.add(DIR, PULSAR_OFF)); st.fly = { ph: 'appr', v, t: 0 };
+    }
+    return;
+  }
+  if (f.ph === 'appr') {
+    // straight in at a steady speed, braking only over the last stretch
+    const left = Math.abs(st.L) - 5, cruise = 1.8;
+    const v = Math.min(cruise, Math.max(0.25, 1.8 * Math.sqrt(Math.max(left, 0) / 1.0)));
+    setL(Math.min(-5, st.L + v * dt));
+    if (left <= 0.005) { setL(-5); st.fly = null; }
+    return;
+  }
+  if (f.ph === 'back') {
+    // keep the arc's pace, easing to rest only over the last stretch
+    const t = Math.min(f.t, f.T), T = f.T, ta = T * 0.6;
+    const ds = t < ta ? f.c0 * t : f.c0 * ta + f.c0 * (t - ta) - f.c0 * (t - ta) * (t - ta) / (2 * (T - ta));
+    setL(fromS(f.s0 + Math.sign(f.s1 - f.s0) * ds));
+    if (f.t >= f.T) st.fly = null;
+  }
+}
+
+// ---- sound: a slow chord for each universe, a rush of air at the throat, chimes as you pass the lamps
+let AC = null, snd = null, soundOn = false;   // off until tapped, like the black hole: the tap itself unlocks audio on phones
+function buildAudio(){
+  try { AC = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { return; }
+  const master = AC.createGain(); master.gain.value = 0;
+  const comp = AC.createDynamicsCompressor(); comp.threshold.value = -24; comp.knee.value = 12; comp.ratio.value = 4; comp.attack.value = 0.01; comp.release.value = 0.3;
+  const mk = AC.createGain(); mk.gain.value = 2.2; master.connect(comp).connect(mk).connect(AC.destination);
+  const lp = AC.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 900; lp.Q.value = 0.3; lp.connect(master);
+  const mkPad = (notes, amps) => {
+    const g = AC.createGain(); g.gain.value = 0; g.connect(lp); const oscs = [];
+    notes.forEach((f, i) => { const o = AC.createOscillator(); o.type = i < 2 ? 'sine' : 'triangle'; o.frequency.value = f; o.detune.value = (i - 2) * 4; const a = AC.createGain(); a.gain.value = amps[i]; o.connect(a).connect(g); o.start(); oscs.push(o); });
+    const lfo = AC.createOscillator(); lfo.frequency.value = 0.06 + Math.random() * 0.03; const lg = AC.createGain(); lg.gain.value = 0.08; lfo.connect(lg).connect(g.gain); lfo.start();
+    return { g, oscs };
+  };
+  const home = mkPad([55, 82.41, 110, 130.81, 196], [0.5, 0.32, 0.16, 0.08, 0.04]);          // cool, minor
+  const far  = mkPad([65.41, 98, 130.81, 164.81, 246.94], [0.5, 0.32, 0.17, 0.09, 0.05]);    // open, major
+  const nb = AC.createBuffer(1, AC.sampleRate * 2, AC.sampleRate), nd = nb.getChannelData(0); for (let i = 0; i < nd.length; i++) nd[i] = Math.random() * 2 - 1;
+  const ns = AC.createBufferSource(); ns.buffer = nb; ns.loop = true;
+  const bp = AC.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 400; bp.Q.value = 0.8;
+  const wg = AC.createGain(); wg.gain.value = 0; ns.connect(bp).connect(wg).connect(master); ns.start();
+  const ro = AC.createOscillator(); ro.type = 'triangle'; ro.frequency.value = 38; const rf = AC.createBiquadFilter(); rf.type = 'lowpass'; rf.frequency.value = 160;
+  const rg = AC.createGain(); rg.gain.value = 0; ro.connect(rf).connect(rg).connect(master); ro.start();
+  snd = { master, lp, home, far, bp, wg, rg, ro, lastL: st.L };
+  master.gain.setTargetAtTime(0.8, AC.currentTime, 1.0);
+  if (AC.state === 'suspended') AC.resume();
+  // a silent blip inside the tap, which some phones need before they will play anything
+  const b0 = AC.createBuffer(1, 1, AC.sampleRate), s0 = AC.createBufferSource(); s0.buffer = b0; s0.connect(AC.destination); s0.start(0);
+}
+function startAudio(){ if (!soundOn) return; if (!AC) buildAudio(); else if (AC.state === 'suspended') AC.resume(); }
+$('sound').onclick = e => {
+  e.stopPropagation(); soundOn = !soundOn; $('sound').textContent = soundOn ? 'Sound: on' : 'Sound: off';
+  if (soundOn) { startAudio(); if (snd) snd.master.gain.setTargetAtTime(0.8, AC.currentTime, 0.3); }
+  else if (snd) snd.master.gain.setTargetAtTime(0, AC.currentTime, 0.2);
+};
+function chime(f, when, vol){
+  const t = AC.currentTime + when, o = AC.createOscillator(), o2 = AC.createOscillator(), g = AC.createGain(), g2 = AC.createGain();
+  o.frequency.value = f; o2.frequency.value = f * 2.76; g2.gain.value = 0.25;
+  g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + 0.01); g.gain.exponentialRampToValueAtTime(0.0002, t + 1.6);
+  o.connect(g); o2.connect(g2).connect(g); g.connect(snd.master); o.start(t); o2.start(t); o.stop(t + 1.7); o2.stop(t + 1.7);
+}
+function pulseSound(g){
+  if (!snd || !soundOn) return;
+  const t = AC.currentTime, o = AC.createOscillator(), g2 = AC.createGain();
+  o.type = 'sine'; o.frequency.setValueAtTime(Math.max(60, 990 * g), t);
+  g2.gain.setValueAtTime(0.0001, t); g2.gain.exponentialRampToValueAtTime(0.05 * Math.max(0.15, g), t + 0.01); g2.gain.exponentialRampToValueAtTime(0.0002, t + 0.5 + 1.5 * (1 - g));
+  o.connect(g2).connect(snd.master); o.start(t); o.stop(t + 2.2);
+}
+function pinchSound(){
+  if (!snd || !soundOn) return;
+  const t = AC.currentTime, o = AC.createOscillator(), g = AC.createGain();
+  o.frequency.setValueAtTime(90, t); o.frequency.exponentialRampToValueAtTime(28, t + 1.4);
+  g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.7, t + 0.03); g.gain.exponentialRampToValueAtTime(0.0005, t + 2.2);
+  o.connect(g).connect(snd.master); o.start(t); o.stop(t + 2.3);
+}
+function updateAudio(dt){
+  const L = st.L;
+  if (!snd || !soundOn) { st.prevL = L; return; }
+  const t = AC.currentTime;
+  const side = Math.min(1, Math.max(0, 0.5 - L / 1.2));          // 0 home, 1 far, handed over right at the throat
+  const dead = st.col ? 1 - st.fade : 0;                          // home's light gone: its chord goes with it
+  snd.home.g.gain.setTargetAtTime(0.3 * (1 - side) + 0.12 * side * (1 - dead), t, 0.3);
+  snd.far.g.gain.setTargetAtTime(0.3 * side * (st.col && st.fade === 0 ? 0.55 : 1), t, 0.3);
+  const m = st.m / 0.48;
+  snd.lp.frequency.setTargetAtTime(900 - 650 * m, t, 0.4);
+  snd.home.oscs.forEach((o, i) => o.detune.setTargetAtTime((i - 2) * 4 - 1200 * m * st.fade * 0.6 - 1200 * dead, t, 0.4));   // home sinks as its light reddens
+  const speed = Math.abs(L - snd.lastL) / Math.max(dt, 1e-3); snd.lastL = L;
+  const near = Math.exp(-Math.abs(L) / 1.6);
+  snd.wg.gain.setTargetAtTime(Math.min(0.5, 0.06 * speed * near), t, 0.08);
+  snd.bp.frequency.setTargetAtTime(300 + 1800 * near, t, 0.1);
+  snd.rg.gain.setTargetAtTime(st.col ? 0.18 * m * (0.3 + 0.7 * st.fade) : 0, t, 0.3);
+  // the lamps ring as you go past them
+  st.prevL = L;
+}
+
+const TC_RATE = 1.8, TC_0 = 5, TC_END = 15;      // throat radii of light travel time per second; when the last light is in
+addEventListener('keydown', e => { const k = e.key.toLowerCase(); if (k === 'w' || k === 'arrowup') st.keys.w = true; if (k === 's' || k === 'arrowdown') st.keys.s = true; });
+addEventListener('keyup', e => { const k = e.key.toLowerCase(); if (k === 'w' || k === 'arrowup') st.keys.w = false; if (k === 's' || k === 'arrowdown') st.keys.s = false; });
+let last = performance.now(), lastDraw = 0;
+function frame(now){
+  const dt = Math.min(0.25, (now - last) / 1000); last = now;
+  const sdt = dt * (st.speed || 1);   // playback speed: everything that unfolds in time runs faster or slower
+  step(sdt);
+  updateAudio(dt);
+  // walking with the keys, like the black hole: W forward, S back
+  if (!st.fly && (st.keys.w || st.keys.s)) {
+    // move the way you are looking (only the part along the line to the throat counts: that is the one direction there is here)
+    const F = (st.cam || basis()).F, out = V.dot(F, DIR), sg = (st.keys.w ? 1 : -1) * out * (st.L >= 0 ? 1 : -1);
+    const v = (Math.abs(st.L) + LC) * 0.45; setL(st.L + sg * v * dt);
+  }
+  // the pulsar: its flashes reach you at the rate its light gets through; once the horizon closes behind that light, they stop
+  {
+    // flash phase: one per second of the pulsar's own time. Before the horizon every ray brings the same phase;
+    // after it, each ray's phase depends on how long before the closing its light crossed (see the shader)
+    const G = m => m - 1.9 * (1 - Math.exp(-m / 1.9));
+    if (st.tc < -1e8) {
+      const before = Math.floor(st.pph); st.pph += sdt;
+      if (Math.floor(st.pph) > before && st.L < 0) pulseSound(1);
+    } else {
+      let tau = 0; const N = 40, Lb = Math.abs(st.L);   // light time from the throat to you, straight in
+      for (let i = 0; i < N; i++) { const l = (i + 0.5) / N * Lb; tau += Lb / N / Math.sqrt(Math.max(1 - 2 * st.m / Math.sqrt(1 + l * l), 1e-4)); }
+      if (st.ph0 === undefined) st.ph0 = st.pph + G(tau - st.tc) / 1.8;
+      // you hear the ring's flashes, the last light to arrive: they slow, deepen and stop
+      const mr = Math.max(0, tau + 5 - st.tc), phr = st.ph0 - G(mr) / 1.8, gr = 1 - Math.exp(-mr / 1.9);
+      if (st.phr !== undefined && Math.floor(phr) > Math.floor(st.phr) && gr > 0.03) pulseSound(gr);
+      st.phr = phr;
+    }
+    const fr = st.pph - Math.floor(st.pph);
+    st.pulse = Math.exp(-fr / 0.12);
+    if (st.L < 0 && (st.pulse > 0.02 || (st.col && st.col.t < 30))) st.moved = true;
+  }
+  if (st.col) {
+    // the throat's clock slows until a horizon sits on it (c = 6.5 s); after that, light that crossed later never gets out
+    st.col.t += sdt; const c = st.col.t, k = Math.min(1, Math.max(0, (c - 0.5) / 9.5)), sm = k * k * (3 - 2 * k);
+    st.m = 0.48 * sm; st.tc = c < 10.8 ? -1e9 : (c - 10.8) * TC_RATE + TC_0;
+    st.fade = st.tc < TC_0 ? 1 : Math.max(0, 1 - (st.tc - TC_0) / (TC_END - TC_0));
+    if (c < 30) st.moved = true;
+    $('acts').style.display = 'none';
+    if (st.tc > TC_END) { if (!$('endMsg').classList.contains('on')) pinchSound(); $('endMsg').classList.add('on'); }
+  }
+  st.still = st.moved ? 0 : st.still + dt;
+  const want = st.still > 0.3 ? 1.0 : 0.7;
+  if (want !== scale) { scale = want; st.moved = true; }
+  resize();
+  if (st.moved || now - lastDraw > 1000) {
+    lastDraw = now;
+    const B = st.cam || basis();
+    gl.viewport(0, 0, canvas.width, canvas.height);
+    gl.uniform2f(U.uRes, canvas.width, canvas.height); gl.uniform2f(U.uJit, 0, 0);
+    gl.uniform3fv(U.uDir, DIR); gl.uniform3fv(U.uF, B.F); gl.uniform3fv(U.uR, B.R); gl.uniform3fv(U.uU, B.U);
+    gl.uniform1f(U.uL, st.L); gl.uniform1f(U.uFy, 1 / Math.tan((35 - 7 * Math.min(1, Math.max(0, (st.tc - TC_0) / (TC_END - TC_0))) - 11 * (st.zoom || 0)) * Math.PI / 180)); gl.uniform1f(U.uExp, 1.1); gl.uniform1f(U.uM, st.m); gl.uniform1f(U.uTc, st.tc); gl.uniform1f(U.uPulse, st.pulse); gl.uniform3fv(U.uPDir, st.pdir); gl.uniform1f(U.uPh0, st.ph0 === undefined ? 0 : st.ph0);
+    gl.drawArrays(gl.TRIANGLES, 0, 3);
+    st.moved = false;
+  }
+  $('dist').innerHTML = Math.abs(st.L).toFixed(Math.abs(st.L) < 10 ? 1 : 0) + '<small>R</small>';
+  $('side').textContent = st.col && st.fade < 0.3 ? 'Throat closed' : (st.L >= 0 ? 'Home universe' : 'Far universe');
+  knob.style.top = (12 + LtoY(st.L) * (zoom.clientHeight - 24)) + 'px';
+  drawEmb();
+  requestAnimationFrame(frame);
+}
+const emb = $('emb'), ectx = emb.getContext('2d');
+function drawEmb(){
+  const d = Math.min(window.devicePixelRatio || 1, 2), W = 230 * d, H = 230 * d;
+  if (emb.width !== W) { emb.width = W; emb.height = H; }
+  const c = ectx; c.clearRect(0, 0, W, H);
+  // the equatorial slice of space drawn as a surface: radius sqrt(1+l^2) at height asinh(l)
+  const cx = W / 2, cy = H / 2, sx = 13 * d, sz = 22 * d, tilt = 0.28, LM = 9;
+  const P = (l, a) => { const r = Math.sqrt(1 + l * l), z = Math.asinh(l); return [cx + r * Math.cos(a) * sx, cy - z * sz + r * Math.sin(a) * sx * tilt]; };
+  c.lineWidth = 1 * d;
+  for (let l = -LM; l <= LM + 1e-6; l += 0.75) {
+    const near = Math.abs(l) < 0.01;
+    c.strokeStyle = near ? (st.col ? 'rgba(' + Math.round(255 - 60 * st.m / 0.48) + ',' + Math.round(215 * st.fade * (1 - st.m)) + ',' + Math.round(160 * st.fade * (1 - st.m)) + ',.9)' : 'rgba(255,215,160,.9)') : 'rgba(150,175,230,' + (0.18 + 0.25 * Math.exp(-Math.abs(l) / 4)) + ')';
+    c.beginPath(); for (let i = 0; i <= 64; i++) { const q = P(l, i / 64 * Math.PI * 2); i ? c.lineTo(q[0], q[1]) : c.moveTo(q[0], q[1]); } c.stroke();
+  }
+  for (let k = 0; k < 12; k++) {
+    const a = k / 12 * Math.PI * 2; c.strokeStyle = 'rgba(150,175,230,.14)'; c.beginPath();
+    for (let l = -LM; l <= LM; l += 0.25) { const q = P(l, a); l === -LM ? c.moveTo(q[0], q[1]) : c.lineTo(q[0], q[1]); } c.stroke();
+  }
+  // you: on the near side of the surface, clamped to what fits
+  // the whole trip (to 40R) squeezed onto the drawn part, so the dot moves the whole time
+  const lvOf = L => Math.max(-LM, Math.min(LM, LM * Math.asinh(L / 12) / Math.asinh(40 / 12)));
+  // direction around the throat: angle of where you are, measured in the plane of the turn
+  const az = Math.atan2(V.dot(DIR, AZ_E), V.dot(DIR, DIR0)), lv = lvOf(st.L), me = P(lv, Math.PI / 2 + az);
+  if (st.fly || st.col) { const tr = st.trail, q = [st.L, az]; if (!tr.length || Math.abs(tr[tr.length - 1][0] - q[0]) + Math.abs(tr[tr.length - 1][1] - q[1]) > 0.05) tr.push(q); if (tr.length > 600) tr.shift(); }
+  if (st.trail.length > 1) { c.strokeStyle = 'rgba(200,230,255,.55)'; c.lineWidth = 1.5 * d; c.beginPath(); st.trail.forEach((q, i) => { const p = P(lvOf(q[0]), Math.PI / 2 + q[1]); i ? c.lineTo(p[0], p[1]) : c.moveTo(p[0], p[1]); }); c.stroke(); c.lineWidth = 1 * d; }
+  c.fillStyle = '#e8f4ff'; c.shadowColor = '#9fd0ff'; c.shadowBlur = 10 * d; c.beginPath(); c.arc(me[0], me[1], 4 * d, 0, 7); c.fill(); c.shadowBlur = 0;
+  c.font = 10 * d + 'px -apple-system, Segoe UI, sans-serif'; c.fillStyle = 'rgba(200,210,240,.7)'; c.textAlign = 'left';
+  c.fillText('Home universe', 4 * d, 12 * d); c.fillText('Far universe', 4 * d, H - 4 * d);
+  c.fillStyle = 'rgba(255,215,160,.9)'; c.textAlign = 'left'; const th = P(0, 0); c.fillText('throat', th[0] + 7 * d, th[1] + 3 * d);
+  c.fillStyle = '#cfe6ff'; c.textAlign = 'left'; c.fillText('you', me[0] + 7 * d, me[1] + 4 * d);
+}
+// ---- validation: the same ray stepping as the shader, run on cases with exact answers
+function rayJS(L, psi, m, opt){
+  // psi: angle away from looking straight at the throat. Returns whether the ray crosses the throat and the angle it sweeps.
+  opt = opt || {};
+  const Af = l => Math.max(1 - 2 * m / Math.sqrt(1 + l * l), 1e-4);
+  const acc = (l, b) => { const r2 = 1 + l * l, r = Math.sqrt(r2), A = Af(l), Al = 2 * m * l / (r2 * r); return -Al / (2 * A * A) + b * b * l / (r2 * r2); };
+  const ca = -Math.cos(psi), sa = Math.sin(psi), s = L >= 0 ? 1 : -1, sq0 = Math.sqrt(Af(L));
+  const b = Math.sqrt(1 + L * L) * sa / sq0;
+  let l = L, pl = s * ca / sq0, ph = 0, crossed = false, tau = 0;
+  const Lesc = opt.Lesc || Math.max(Math.abs(L) * 1.6, 40);
+  for (let i = 0; i < (opt.max || 20000); i++) {
+    if (Math.abs(l) > Lesc && l * pl > 0) return { crossed, ph, tau, b };
+    const h = (opt.h || 0.06) * Math.sqrt(1 + l * l) * Math.sqrt(Af(l));
+    const k1l = pl, k1p = acc(l, b), k1h = b / (1 + l * l);
+    const l2 = l + 0.5 * h * k1l, p2 = pl + 0.5 * h * k1p, k2l = p2, k2p = acc(l2, b), k2h = b / (1 + l2 * l2);
+    const l3 = l + 0.5 * h * k2l, p3 = pl + 0.5 * h * k2p, k3l = p3, k3p = acc(l3, b), k3h = b / (1 + l3 * l3);
+    const l4 = l + h * k3l, p4 = pl + h * k3p, k4l = p4, k4p = acc(l4, b), k4h = b / (1 + l4 * l4);
+    const lp = l, iA0 = 1 / Af(l);
+    l += h / 6 * (k1l + 2 * k2l + 2 * k3l + k4l); pl += h / 6 * (k1p + 2 * k2p + 2 * k3p + k4p); ph += h / 6 * (k1h + 2 * k2h + 2 * k3h + k4h);
+    tau += 0.5 * h * (iA0 + 1 / Af(l));
+    if (lp * l <= 0 && !crossed) { crossed = true; if (opt.stopAtThroat) return { crossed, ph, tau, b }; }
+    const need = Math.max(0, 1 / Af(l) - b * b / (1 + l * l)); pl = (pl >= 0 ? 1 : -1) * Math.sqrt(need);
+  }
+  return { crossed, ph, tau, b };
+}
+const bisectW = (f, lo, hi, n) => { for (let i = 0; i < n; i++) { const mid = (lo + hi) / 2; if (f(mid)) lo = mid; else hi = mid; } return (lo + hi) / 2; };
+const ellK = k => { let a = 1, g = Math.sqrt(1 - k * k); for (let i = 0; i < 30; i++) { const a2 = (a + g) / 2; g = Math.sqrt(a * g); a = a2; } return Math.PI / (2 * a); };
+function runVerify(){
+  const tb = document.querySelector('#vt tbody'); tb.innerHTML = '';
+  const row = (a, th, nu, src, dg) => { const err = Math.abs(nu - th) / Math.abs(th) * 100; const tr = document.createElement('tr'); tr.innerHTML = '<td>' + a + '</td><td class="n">' + th.toFixed(dg) + '</td><td class="n">' + nu.toFixed(dg) + '</td><td class="ok">' + (err < 0.001 ? '< 0.001%' : err.toFixed(3) + '%') + '</td><td style="opacity:.65">' + src + '</td>'; tb.appendChild(tr); };
+  // 1. the window from far away: rays with b below the throat radius go through
+  const Lf = 2000, Rf = Math.sqrt(1 + Lf * Lf);
+  const psF = bisectW(ps => rayJS(Lf, ps, 0, { stopAtThroat: true, Lesc: Lf * 1.01 }).crossed, 0, 0.01, 50);
+  row('Window size, seen from far away (R)', 1, Rf * Math.sin(psF), 'b<sub>c</sub> = R', 4);
+  // 2. the window from where you are
+  const Lh = Math.max(2, Math.abs(st.L)), psH = bisectW(ps => rayJS(Lh, ps, 0, { stopAtThroat: true }).crossed, 0, Math.PI / 2, 46);
+  row('Window angle at ' + Lh.toFixed(1) + 'R (°)', Math.asin(1 / Math.sqrt(1 + Lh * Lh)) * 180 / Math.PI, psH * 180 / Math.PI, 'sin ψ = R / √(R² + l²)', 4);
+  // 3. bending of a ray that passes the throat without going through, from its closest point outward
+  [2, 1.2].forEach(b => {
+    const l0 = Math.sqrt(b * b - 1), Lend = 4000;
+    let l = l0, pl = 0, ph = 0;
+    const acc = l => b * b * l / Math.pow(1 + l * l, 2);
+    pl = 1e-9;
+    while (l < Lend) { const h = 0.004 * Math.sqrt(1 + l * l);
+      const k1l = pl, k1p = acc(l), k1h = b / (1 + l * l), l2 = l + h / 2 * k1l, p2 = pl + h / 2 * k1p, k2l = p2, k2p = acc(l2), k2h = b / (1 + l2 * l2);
+      const l3 = l + h / 2 * k2l, p3 = pl + h / 2 * k2p, k3l = p3, k3p = acc(l3), k3h = b / (1 + l3 * l3), l4 = l + h * k3l, p4 = pl + h * k3p, k4l = p4, k4p = acc(l4), k4h = b / (1 + l4 * l4);
+      l += h / 6 * (k1l + 2 * k2l + 2 * k3l + k4l); pl += h / 6 * (k1p + 2 * k2p + 2 * k3p + k4p); ph += h / 6 * (k1h + 2 * k2h + 2 * k3h + k4h);
+      pl = Math.sqrt(Math.max(0, 1 - b * b / (1 + l * l))); }
+    const tail = b / l;    // what is left of the sweep beyond the end point
+    row('Bending of a ray passing at b = ' + b + 'R (°)', (2 * ellK(1 / b) - Math.PI) * 180 / Math.PI, (2 * (ph + tail) - Math.PI) * 180 / Math.PI, 'α = 2K(R/b) − π', 3);
+  });
+  // 4. the black hole the throat becomes
+  const M = 0.48, psB = bisectW(ps => rayJS(Lf, ps, M, { stopAtThroat: true, Lesc: Lf * 1.01 }).crossed, 0, 0.01, 50);
+  const AF = 1 - 2 * M / Rf;
+  row('Shadow size after the collapse (R)', 3 * Math.sqrt(3) * M, Rf * Math.sin(psB) / Math.sqrt(AF), 'b<sub>c</sub> = 3√3 M, M = 0.48 R', 4);
+  // 5. light time from the throat to 10R once the throat clock has slowed
+  let tauE = 0; const N = 200000; for (let i = 0; i < N; i++) { const l = (i + 0.5) / N * 10; tauE += 10 / N / Math.sqrt(1 - 2 * M / Math.sqrt(1 + l * l)); }
+  const tR = rayJS(-10, 0, M, { stopAtThroat: true, h: 0.01 }).tau;
+  row('Light time, throat to 10R, after the collapse (R/c)', tauE, tR, 'τ = ∫ dl / √(1 − 2M/r)', 4);
+  $('vnote').innerHTML =
+    '<div class="vh">What happens on the way</div><ul class="vl">' +
+    '<li>The window. The throat is a sphere of radius R. From outside it shows the other universe\'s whole sky, squeezed into a disc of angular radius asin(R/r).</li>' +
+    '<li>The seam. Light that grazes the throat circles it once, twice, many times. Both skies repeat without end in the thin bright band at the window\'s edge.</li>' +
+    '<li>Nothing pulls you. Clocks tick at the same rate everywhere and there is no tidal force. The throat is held open by matter with negative energy.</li>' +
+    '<li>Crossing. At the throat the seam runs right round your sky. One half is home, the other half is the far universe.</li>' +
+    '<li>The collapse. The ordinary matter you carry through upsets the balance. The throat\'s clock slows, by √(1 − 2M/r), until a horizon closes on it.</li>' +
+    '<li>The last light. Light that crossed before the closing still arrives, the shortest paths first. The centre goes dark first and the ring of longest paths last, reddened by g = 1 − e<sup>−Δt/4M</sup>.</li>' +
+    '<li>Pinched off. Nothing from home can ever reach you again.</li></ul>' +
+    '<div class="vh">How it is computed</div>' +
+    'Ellis wormhole: ds² = −dt² + dl² + (R² + l²) dΩ². Light: l″ = b²l / r⁴, φ′ = b / r². ' +
+    'The collapse is a run of snapshots with g<sub>tt</sub> = −(1 − 2M/r), M rising to 0.48R. Each pixel traces four rays backward in time with fourth-order Runge–Kutta.';
+}
+$('verifyBtn').onclick = () => { $('verify').style.display = 'block'; setTimeout(runVerify, 30); };
+$('verifyClose').onclick = () => { $('verify').style.display = 'none'; };
+
+$('menuBtn').onclick = e => { e.stopPropagation(); const m = $('menu'); m.style.display = m.style.display === 'block' ? 'none' : 'block'; };
+window.addEventListener('pointerdown', e => { const m = $('menu'); if (m.style.display === 'block' && !m.contains(e.target) && e.target !== $('menuBtn')) m.style.display = 'none'; });
+document.querySelectorAll('#menu .mi[data-go]').forEach(el => el.onclick = () => { location.href = el.dataset.go; });
+window.__st = st; window.__fly = () => $('fly').onclick();
+requestAnimationFrame(frame);
+</script>
+</body></html>
