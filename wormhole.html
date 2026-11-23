@@ -471,6 +471,8 @@ function updateAudio(dt){
 const TC_RATE = 1.8, TC_0 = 5, TC_END = 15;      // throat radii of light travel time per second; when the last light is in
 addEventListener('keydown', e => { const k = e.key.toLowerCase(); if (k === 'w' || k === 'arrowup') st.keys.w = true; if (k === 's' || k === 'arrowdown') st.keys.s = true; });
 addEventListener('keyup', e => { const k = e.key.toLowerCase(); if (k === 'w' || k === 'arrowup') st.keys.w = false; if (k === 's' || k === 'arrowdown') st.keys.s = false; });
+// the scene is mostly deep sky: lift it so it reads on phones and in screen recordings too
+const EXPO = 2.0;
 let last = performance.now(), lastDraw = 0;
 function frame(now){
   const dt = Math.min(0.25, (now - last) / 1000); last = now;
@@ -523,7 +525,7 @@ function frame(now){
     gl.viewport(0, 0, canvas.width, canvas.height);
     gl.uniform2f(U.uRes, canvas.width, canvas.height); gl.uniform2f(U.uJit, 0, 0);
     gl.uniform3fv(U.uDir, DIR); gl.uniform3fv(U.uF, B.F); gl.uniform3fv(U.uR, B.R); gl.uniform3fv(U.uU, B.U);
-    gl.uniform1f(U.uL, st.L); gl.uniform1f(U.uFy, 1 / Math.tan((35 - 7 * Math.min(1, Math.max(0, (st.tc - TC_0) / (TC_END - TC_0))) - 11 * (st.zoom || 0)) * Math.PI / 180)); gl.uniform1f(U.uExp, 1.1); gl.uniform1f(U.uM, st.m); gl.uniform1f(U.uTc, st.tc); gl.uniform1f(U.uPulse, st.pulse); gl.uniform3fv(U.uPDir, st.pdir); gl.uniform1f(U.uPh0, st.ph0 === undefined ? 0 : st.ph0);
+    gl.uniform1f(U.uL, st.L); gl.uniform1f(U.uFy, 1 / Math.tan((35 - 7 * Math.min(1, Math.max(0, (st.tc - TC_0) / (TC_END - TC_0))) - 11 * (st.zoom || 0)) * Math.PI / 180)); gl.uniform1f(U.uExp, EXPO); gl.uniform1f(U.uM, st.m); gl.uniform1f(U.uTc, st.tc); gl.uniform1f(U.uPulse, st.pulse); gl.uniform3fv(U.uPDir, st.pdir); gl.uniform1f(U.uPh0, st.ph0 === undefined ? 0 : st.ph0);
     gl.drawArrays(gl.TRIANGLES, 0, 3);
     st.moved = false;
   }
