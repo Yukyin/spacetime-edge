@@ -1,0 +1,729 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Spacetime Edge · The Sun</title>
+<style>
+  html,body{margin:0;height:100%;background:#000;overflow:hidden;font-family:-apple-system,Segoe UI,Helvetica,Arial,sans-serif;color:#e8ebff;touch-action:none}
+  canvas{position:fixed;inset:0;width:100%;height:100%;display:block}
+  #hud{position:fixed;left:12px;top:10px;font-size:12px;line-height:1.6;text-shadow:0 1px 3px #000;pointer-events:none}
+  #hud .big{font-size:30px;font-weight:300;letter-spacing:.01em}
+  #hud .big small{font-size:14px;opacity:.6;margin-left:4px}
+  #hud .side{opacity:.75}
+  #hint{font-size:11.5px;opacity:.55;margin-top:4px}
+  .btn{position:fixed;white-space:nowrap;padding:5px 10px;border-radius:5px;border:1px solid rgba(255,255,255,.13);background:rgba(8,10,18,.55);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);color:rgba(232,236,255,.9);font-size:11.5px;letter-spacing:.02em;cursor:pointer;font-family:inherit}
+  .btn:hover{border-color:rgba(255,255,255,.32)}
+  #emb{position:fixed;left:10px;bottom:34px;width:230px;height:230px;inset:auto auto 34px 10px}
+  #zoom{position:fixed;right:10px;top:50%;transform:translateY(-50%);width:30px;height:230px;border-radius:6px;background:rgba(8,10,18,.55);border:1px solid rgba(255,255,255,.13)}
+  #zoom .knob{position:absolute;left:7px;width:16px;height:16px;border-radius:50%;background:#e6e9f7;margin-top:-8px}
+  #zoom .tick{position:absolute;right:36px;color:rgba(200,206,230,.75);font-size:10.5px;white-space:nowrap;transform:translateY(-50%);pointer-events:none}
+  #endMsg{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;background:rgba(0,0,0,.55);color:#eef;text-align:center;font-size:15px;line-height:1.8;padding:30px;box-sizing:border-box;opacity:0;pointer-events:none;transition:opacity 1.2s;z-index:15}
+  #endMsg.on{opacity:1;pointer-events:auto}
+  #endMsg .btn{position:static;margin-top:22px;font-size:15px;padding:8px 18px}
+  #topR{position:fixed;right:10px;top:10px;display:flex;gap:6px;z-index:10}
+  #topR .btn{position:static}
+  #menuBtn{font-size:13px !important;line-height:1;padding:5px 9px !important}
+  #menu{position:fixed;right:10px;top:44px;min-width:150px;display:none;z-index:12;background:rgba(8,10,18,.85);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.13);border-radius:6px;padding:6px;font-size:12px}
+  #menu .mh{color:rgba(200,206,230,.5);font-size:10px;letter-spacing:.14em;text-transform:uppercase;padding:4px 8px 6px}
+  #menu .mi{color:rgba(232,236,255,.9);padding:6px 8px;border-radius:4px;cursor:pointer}
+  #menu .mi:hover{background:rgba(255,255,255,.06)}
+  #menu .mi.on{background:rgba(255,255,255,.1);color:#fff;cursor:default}
+  #verifyBtn{left:10px;bottom:14px;font-size:11px !important;padding:4px 9px !important;opacity:.5}
+  #verify{position:fixed;inset:0;background:rgba(4,5,12,.985);color:#e6e9f7;font-size:13.5px;line-height:1.65;overflow-y:auto;display:none;padding:26px 20px 60px;box-sizing:border-box;z-index:20}
+  #verify h2{font-size:18px;margin:0 0 4px;color:#fff;font-weight:600}
+  #verify .sub{color:rgba(200,206,230,.65);margin-bottom:16px;max-width:860px}
+  #verify table{border-collapse:collapse;width:100%;max-width:900px}
+  #verify th,#verify td{text-align:left;padding:8px 9px;border-bottom:1px solid rgba(255,255,255,.09);vertical-align:top}
+  #verify th{color:rgba(200,206,230,.7);font-weight:500;font-size:12.5px}
+  #verify td.n{font-variant-numeric:tabular-nums;white-space:nowrap}
+  #verify td.ok{color:#8ff0b0;white-space:nowrap}
+  #verify .note{max-width:900px;color:rgba(210,214,236,.75);margin-top:18px;font-size:12.5px}
+  #verify .vh{color:#fff;font-size:13.5px;font-weight:600;margin:16px 0 6px}
+  #verify .vl{margin:0;padding-left:18px} #verify .vl li{margin-bottom:4px}
+  #verify .close{position:fixed;right:12px;top:10px}
+  #acts{position:fixed;right:10px;bottom:56px;display:flex;flex-direction:column;gap:7px;align-items:flex-end;z-index:10}
+  #acts .btn{position:static}
+  #fly{padding:7px 12px;font-size:12.5px;border-color:rgba(140,190,255,.55);color:#cfe3ff;background:rgba(8,20,40,.5)}
+  /* the Sun is bright: keep the read-outs legible on it */
+  #hud,#zoom .tick{transition:color .6s}
+  body.lite #hud,body.lite #zoom .tick{color:#1d1a17;text-shadow:none}
+  body.lite #emb{background:radial-gradient(closest-side,rgba(255,250,240,.35) 60%,rgba(255,250,240,0))}
+  #emb{width:170px;height:170px;background:radial-gradient(closest-side,rgba(0,0,0,.3) 60%,rgba(0,0,0,0));border-radius:50%}
+</style></head><body>
+<canvas id="c"></canvas>
+<div id="hud"><div class="big" id="dist">40<small>R☉</small></div><div class="side" id="side">Approaching the Sun</div><div class="side" id="info"></div><div id="hint">Drag to look around. W / S or scroll to move.</div></div>
+<div id="topR"><button class="btn" id="filt">Filter: off</button><button class="btn" id="sound">Sound: off</button><button class="btn" id="home">Restart</button><button class="btn" id="menuBtn" aria-label="Scenes">☰</button></div>
+<div id="menu"><div class="mh">Scenes</div><div class="mi" data-go="index.html">Black hole</div><div class="mi" data-go="wormhole.html">Wormhole</div><div class="mi on">The Sun</div></div>
+<button class="btn" id="verifyBtn">Validation</button>
+<div id="verify">
+  <button class="btn close" id="verifyClose">Back</button>
+  <h2>Validation</h2>
+  <div class="sub">The model Sun that draws the scene, checked against measured values and exact results.</div>
+  <table id="vt"><thead><tr><th></th><th>Reference</th><th>Model</th><th>Error</th><th>Formula</th></tr></thead><tbody></tbody></table>
+  <div class="note" id="vnote"></div>
+</div>
+<div id="acts"><button class="btn" id="speedBtn">Speed ×1</button><button class="btn" id="fly">Fly in</button></div>
+<div id="endMsg"><div style="font-size:clamp(34px,7vw,64px);font-weight:800;letter-spacing:.04em;color:#ff3a26;text-shadow:0 0 24px rgba(255,40,20,.6)">TRAPPED AT THE CORE</div><div style="font-size:clamp(17px,2.6vw,22px);opacity:.85;margin-top:10px">No way out without the engine.</div><div style="font-size:clamp(15px,2.2vw,18px);opacity:.6;margin-top:6px">The light around you will not reach the surface for about 200,000 years.</div><button class="btn" id="again">Restart</button></div>
+<div id="zoom"><div class="knob" id="knob"></div></div>
+<canvas id="emb"></canvas>
+<script>
+const $ = id => document.getElementById(id);
+const canvas = $('c'), gl = canvas.getContext('webgl2', { antialias: false });
+const VS = `#version 300 es
+in vec2 p; void main(){ gl_Position = vec4(p, 0.0, 1.0); }`;
+const FS = `#version 300 es
+precision highp float;
+out vec4 o;
+uniform vec2 uRes; uniform vec3 uF, uR, uU; uniform float uZ, uFy, uExp, uTime, uHa;
+const float RKM = 695700.0;      // solar radius in km; lengths are in solar radii
+const float TEFF = 5772.0;
+// standard solar model, temperature against radius (ln K)
+const float XT[20] = float[20](0.0,0.05,0.1,0.15,0.2,0.25,0.3,0.35,0.4,0.5,0.6,0.7,0.8,0.9,0.95,0.98,0.99,0.995,0.999,1.0);
+const float LT[20] = float[20](16.5692,16.5236,16.4108,16.2665,16.108,15.9556,15.8034,15.6718,15.5383,15.2971,15.0393,14.691,14.0779,13.3847,12.7068,11.9184,11.2898,10.7144,9.3927,8.6656);
+float Ttab(float x){
+  x = clamp(x, 0.0, 1.0);
+  for (int i = 1; i < 20; i++) if (x <= XT[i]) { float f = (x - XT[i-1]) / (XT[i] - XT[i-1]); return exp(mix(LT[i-1], LT[i], f)); }
+  return TEFF;
+}
+float hash13(vec3 p){ p = fract(p * 0.1031); p += dot(p, p.zyx + 31.32); return fract((p.x + p.y) * p.z); }
+vec3 hash33(vec3 p){ return vec3(hash13(p), hash13(p + 17.3), hash13(p + 41.7)); }
+vec3 bb(float T){
+  T = clamp(T, 1000.0, 40000.0) / 100.0;
+  float r = T <= 66.0 ? 1.0 : clamp(1.292936 * pow(T - 60.0, -0.1332047), 0.0, 1.0);
+  float g = T <= 66.0 ? clamp(0.3900816 * log(T) - 0.6318414, 0.0, 1.0) : clamp(1.1298909 * pow(T - 60.0, -0.0755148), 0.0, 1.0);
+  float b = T >= 66.0 ? 1.0 : (T <= 19.0 ? 0.0 : clamp(0.5432068 * log(T - 10.0) - 1.1962541, 0.0, 1.0));
+  return pow(vec3(r, g, b), vec3(2.2));
+}
+vec3 tintOf(float T){ vec3 t = bb(T); return t / max(max(t.r, t.g), max(t.b, 1e-4)); }
+// visible brightness: Planck radiance at 550 nm, relative to the photosphere
+float Lrel(float T){ return (exp(26160.0 / TEFF) - 1.0) / (exp(min(26160.0 / T, 80.0)) - 1.0); }
+vec3 glow(float T){ return tintOf(T) * Lrel(T); }
+// granulation: convection cells about 1000 km across, bright hot centres, dark cool lanes; they churn and re-form
+float vnoise(vec3 p){
+  vec3 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
+  float a = hash13(i), b = hash13(i + vec3(1,0,0)), c = hash13(i + vec3(0,1,0)), d = hash13(i + vec3(1,1,0));
+  float e = hash13(i + vec3(0,0,1)), g = hash13(i + vec3(1,0,1)), h = hash13(i + vec3(0,1,1)), k = hash13(i + vec3(1,1,1));
+  return mix(mix(mix(a,b,f.x), mix(c,d,f.x), f.y), mix(mix(e,g,f.x), mix(h,k,f.x), f.y), f.z);
+}
+float fbm(vec3 p){ float s = 0.0, a = 0.5; for (int i = 0; i < 4; i++) { s += a * vnoise(p); p = p * 2.03 + 7.1; a *= 0.5; } return s; }
+// the night sky, the same one as the black hole and wormhole scenes: the Milky Way band and stars
+vec3 sky(vec3 d, float g){
+  float boostI = min(pow(g, 4.0), 60.0);
+  vec3 neb = vec3(0.0);
+  vec3 nb = normalize(vec3(0.25, 0.92, -0.3));
+  float lat = dot(d, nb);
+  float band = exp(-lat * lat * 14.0);
+  float n1 = fbm(d * 3.5) * fbm(d * 7.0 + 3.0);
+  float lum = 0.0016 + band * (0.02 + 0.03 * n1 * 1.6);
+  float dust = smoothstep(0.38, 0.62, fbm(d * 9.0 + 11.0));
+  lum *= 1.0 - band * dust * 0.6;
+  vec3 shift = tintOf(6000.0 * g) / tintOf(6000.0);
+  vec3 col = tintOf(5200.0 * g) * lum * 1.1;
+  float m1 = smoothstep(0.52, 0.78, fbm(d * 2.1 + 5.0)), m2 = smoothstep(0.55, 0.8, fbm(d * 2.6 + 17.0)), m3 = smoothstep(0.56, 0.82, fbm(d * 1.8 + 31.0));
+  col += shift * (vec3(0.85, 0.18, 0.55) * m1 * 0.05 + vec3(0.12, 0.35, 1.0) * m2 * 0.05 + vec3(0.1, 0.85, 0.7) * m3 * 0.035) * (0.6 + 0.8 * fbm(d * 6.0 + 2.0));
+  for (int i = 0; i < 3; i++) {
+    float sc = i == 0 ? 70.0 : (i == 1 ? 150.0 : 320.0);
+    vec3 q = d * sc; vec3 c = floor(q); vec3 f = fract(q);
+    float h = hash13(c);
+    float th = (i == 0 ? 0.992 : 0.975) - band * (i == 2 ? 0.05 : 0.01);
+    if (h > th) {
+      vec3 sp = vec3(hash13(c + 1.3), hash13(c + 2.7), hash13(c + 5.1)) * 0.6 + 0.2;
+      float w = i == 0 ? 0.09 : 0.11;
+      float s = exp(-dot(f - sp, f - sp) / (w * w * 0.25));
+      float mag = pow((h - th) / (1.0 - th), 1.5) * (i == 0 ? 9.0 : (i == 1 ? 3.0 : 1.2));
+      float t = hash13(c + 9.0);
+      vec3 tc = tintOf(mix(2600.0, 16000.0, t) * g); tc = pow(tc, vec3(1.7));
+      col += tc / max(max(tc.r, tc.g), max(tc.b, 1e-4)) * s * mag;
+    }
+  }
+  return col * boostI;
+}
+// granulation: convection cells about 1000 km across. Hot gas wells up in the middle of each cell and spreads out,
+// cools, and sinks in the narrow dark lanes between them; the cells swell, split and fade over minutes
+vec3 gTilt = vec3(0.0);   // slope of the granule under the last gran() lookup
+// granulation: convection cells about 1000 km across. Hot gas wells up in each cell and spreads out,
+// cools, and sinks in the dark lanes between them; the cells swell, split and fade over minutes.
+// Drawn like the telescope images: irregular cells with knotted, mottled interiors and lanes of uneven width
+float gran(vec3 p){
+  vec3 q = p * 700.0;
+  vec3 w = vec3(fbm(q * 0.9), fbm(q * 0.9 + 19.1), fbm(q * 0.9 + 37.3)) - 0.5;
+  q += 0.75 * w + 0.18 * (vec3(vnoise(q * 4.0), vnoise(q * 4.0 + 7.7), vnoise(q * 4.0 + 3.3)) - 0.5);
+  vec3 c = floor(q), f = fract(q);
+  float F1 = 9.0, F2 = 9.0; vec3 P1 = vec3(0.0), C1 = vec3(0.0);
+  for (int k = -1; k <= 1; k++) for (int j = -1; j <= 1; j++) for (int i = -1; i <= 1; i++) {
+    vec3 cc = c + vec3(i, j, k), h = hash33(cc);
+    vec3 pt = vec3(i, j, k) + 0.5 + 0.38 * sin(uTime * (0.25 + 0.2 * h) + 6.2831 * h);
+    float d = length(pt - f);
+    if (d < F1) { F2 = F1; F1 = d; P1 = pt; C1 = cc; } else if (d < F2) F2 = d;
+  }
+  float e = F2 - F1;
+  float hc = hash13(C1);
+  float laneW = 0.12 + 0.16 * vnoise(q * 2.3 + 5.0);                     // lanes widen and narrow, with soft edges
+  float lane = smoothstep(-0.02, laneW, e + 0.06 * (vnoise(q * 7.0) - 0.5));
+  float inner = fbm(q * 2.2 + hc * 13.0);                                 // mottled interior
+  float body = 0.5 + 0.5 * smoothstep(0.0, 0.45, e) + 0.85 * (inner - 0.5);
+  body *= mix(0.8, 1.15, hc);                                             // some cells hotter than others
+  if (hc > 0.9) body *= 0.75 + 0.25 * smoothstep(0.05, 0.3, F1);           // an exploding granule, dimming at its heart
+  float bp = (1.0 - lane) * smoothstep(0.82, 0.95, vnoise(q * 3.5)) * 1.2; // bright points strung along the lanes
+  gTilt = vec3(0.0);
+  return clamp(2.0 * body * mix(0.5 + 0.25 * inner, 1.0, lane) - 1.0 + bp * 0.6, -1.0, 1.0);   // the lanes carry the same mottling, only darker
+}
+// seen from far off the cells blur into a fine mottled grain
+float granFar(vec3 p){ return (fbm(p * 260.0) - 0.5) * 1.4 + (vnoise(p * 900.0) - 0.5) * 0.6; }
+// two sunspots near where you come down
+const vec3 SP1 = normalize(vec3(-0.012, 0.026, 1.0)), SP2 = normalize(vec3(0.16, -0.05, 1.0));
+// sunspots: where bundles of strong magnetic field break through and choke off the rising heat.
+// Real ones come in groups of uneven size: a big leading spot, a scatter of smaller ones and pores,
+// each with a dark umbra (about 4000 K) and a penumbra of radial filaments, ragged at the edges
+float gFil = 0.5;
+float oneSpot(vec3 n, vec3 C, float R, float seed, inout float pen){
+  vec3 e1 = normalize(cross(C, vec3(0.0, 1.0, 0.0001))), e2 = cross(C, e1);
+  vec3 v = n - C * dot(n, C); float x = dot(v, e1), y = dot(v, e2), d = length(vec2(x, y)), a = atan(y, x);
+  vec3 ad = vec3(cos(a), sin(a), seed);
+  float rag = 1.0 + 0.32 * (vnoise(ad * 2.5 + seed * 7.0) - 0.5) + 0.12 * (vnoise(ad * 9.0 + seed) - 0.5);
+  float ru = R * 0.42 * rag * (1.0 + 0.25 * (vnoise(ad * 4.0 + seed * 3.0) - 0.5)), rp = R * rag;
+  float um = 1.0 - smoothstep(ru * 0.85, ru * 1.1, d);
+  float pe = 1.0 - smoothstep(rp * 0.72, rp * 1.12, d);
+  // filaments run outward: brightness varies with angle, smeared along the radius
+  float aw = a + 0.35 * (vnoise(vec3(d / R * 2.0, seed, 1.0)) - 0.5);    // filaments curve a little as they run out
+  float fil = vnoise(vec3(aw * 26.0, d / R * 2.2, seed * 5.0)) * 0.65 + vnoise(vec3(aw * 55.0, d / R * 4.0, seed)) * 0.35;
+  fil = mix(0.5, fil, 0.75);
+  if (pe * (1.0 - um) > pen) { pen = pe * (1.0 - um); gFil = fil; }
+  return um;
+}
+float spotT(vec3 n, float T){
+  float um = 0.0, pen = 0.0, pe0 = 0.0;
+  // the group you come down beside
+  for (int i = 0; i < 7; i++) {
+    float fi = float(i), h1 = hash13(vec3(fi, 1.0, 3.0)), h2 = hash13(vec3(fi, 2.0, 5.0)), h3 = hash13(vec3(fi, 4.0, 9.0));
+    vec3 C = normalize(SP1 + vec3((h1 - 0.5) * 0.05 + fi * 0.007, (h2 - 0.5) * 0.03 + fi * 0.004, 0.0));
+    float R = i == 0 ? 0.018 : (i == 1 ? 0.011 : 0.003 + 0.006 * h3);
+    um = max(um, oneSpot(n, C, R, fi + 1.0, pen));
+  }
+  // a second, smaller group further round the disc
+  for (int i = 0; i < 4; i++) {
+    float fi = float(i), h1 = hash13(vec3(fi, 7.0, 1.0)), h2 = hash13(vec3(fi, 8.0, 2.0)), h3 = hash13(vec3(fi, 9.0, 3.0));
+    vec3 C = normalize(SP2 + vec3((h1 - 0.5) * 0.03, (h2 - 0.5) * 0.02, 0.0));
+    float R = i == 0 ? 0.010 : 0.0025 + 0.004 * h3;
+    um = max(um, oneSpot(n, C, R, fi + 21.0, pen));
+  }
+  float dots = vnoise(n * 9000.0);                                       // umbral dots
+  float Tu = 3900.0 + 500.0 * smoothstep(0.7, 0.95, dots);
+  float Tp = mix(5050.0, 5600.0, smoothstep(0.2, 0.8, gFil));             // bright and dark filaments, softly
+  float Tout = mix(T, mix(T, Tp, 0.85), smoothstep(0.0, 0.7, pen));
+  return mix(Tout, Tu, um);
+}
+vec3 stars(vec3 d){
+  vec3 c = vec3(0.00002, 0.00002, 0.00004);
+  for (int i = 0; i < 3; i++) {
+    float sc = i == 0 ? 70.0 : (i == 1 ? 150.0 : 320.0);
+    vec3 q = d * sc + 91.0; vec3 cc = floor(q); vec3 f = fract(q);
+    float h = hash13(cc), th = i == 0 ? 0.99 : (i == 1 ? 0.975 : 0.95);
+    if (h > th) {
+      vec3 sp = vec3(hash13(cc + 1.3), hash13(cc + 2.7), hash13(cc + 5.1)) * 0.6 + 0.2;
+      float w = i == 0 ? 0.09 : 0.11, s = exp(-dot(f - sp, f - sp) / (w * w * 0.25));
+      float mag = pow((h - th) / (1.0 - th), 1.5) * (i == 0 ? 0.03 : (i == 1 ? 0.01 : 0.004));
+      c += tintOf(mix(3500.0, 20000.0, hash13(cc + 9.0))) * s * mag;
+    }
+  }
+  return c;
+}
+// grey atmosphere (Eddington): source S(tau) = 0.5 + 0.75 tau in units of the mean surface intensity.
+// Brightness temperature of light reaching a point at optical depth t0, travelling down (looking up) or up (looking down)
+float Tray(float t0, float mu, float Te){
+  float I;
+  if (mu < 0.0) { I = 0.5 + 0.75 * (t0 - mu); }                 // looking down: light from below, I = a + b (t0 + |mu|)
+  else { float m = max(mu, 1e-3), E = exp(-t0 / m);              // looking up: only the layers above you shine
+         I = (0.5 + 0.75 * t0) * (1.0 - E) - 0.75 * (m - (t0 + m) * E); }
+  return Te * pow(max(I, 1e-8), 0.25);
+}
+// ---- through an H-alpha filter (656.3 nm, the red line of hydrogen), as solar telescopes see it:
+// the chromosphere above the photosphere, with its bright network, dark filaments, spicules and prominences
+const vec3 HA = vec3(1.0, 0.3, 0.07);
+float cellEdge(vec3 q){
+  vec3 c = floor(q), f = fract(q); float F1 = 9.0, F2 = 9.0;
+  for (int k = -1; k <= 1; k++) for (int j = -1; j <= 1; j++) for (int i = -1; i <= 1; i++) {
+    vec3 cc = c + vec3(i, j, k), pt = vec3(i, j, k) + 0.5 + 0.4 * (hash33(cc) - 0.5);
+    float d = length(pt - f); if (d < F1) { F2 = F1; F1 = d; } else if (d < F2) F2 = d; }
+  return F2 - F1;
+}
+float haDisc(vec3 s, float mu, float foot){
+  float net = (1.0 - smoothstep(0.0, 0.16, cellEdge(s * 32.0 + 1.1 * vec3(fbm(s * 45.0), fbm(s * 45.0 + 5.0), fbm(s * 45.0 + 9.0))))) * (0.45 + 0.9 * fbm(s * 60.0 + 11.0));   // supergranule network, ~30 000 km cells
+  float fineK = 1.0 - smoothstep(0.0004, 0.002, foot);
+  float mot = fbm(s * 420.0) - 0.5, fib = (fbm(s * vec3(1400.0, 1400.0, 1400.0) + 3.0) - 0.5) * fineK;
+  float fv = fbm(s * 18.0 + 5.0), fil = (1.0 - smoothstep(0.0, 0.018, abs(fv - 0.5))) * smoothstep(0.52, 0.62, fbm(s * 7.0 + 2.0));   // long dark filaments
+  float a1 = acos(clamp(dot(s, SP1), -1.0, 1.0)), plage = exp(-a1 / 0.03) * 0.7;                                          // bright plage round the spots
+  float spot = 1.0 - smoothstep(0.004, 0.009, a1);
+  float I = 0.42 + 0.45 * net + 0.45 * mot + 0.3 * fib - 0.4 * fil + plage - 0.35 * spot;
+  return max(I, 0.03) * (0.72 + 0.28 * mu);
+}
+// spicules: jets of gas 500 km wide shooting 5000 to 10 000 km up, packed along the network; from close by, a forest of flames
+vec4 spicules(vec3 pos, vec3 d, float tMax, bool floorOn){
+  float b = dot(pos, d), c = dot(pos, pos) - 1.012 * 1.012, disc = b * b - c;
+  if (disc <= 0.0) return vec4(0.0, 0.0, 0.0, 1.0);
+  float t0 = max(0.0, -b - sqrt(disc)), t1 = min(tMax, -b + sqrt(disc));
+  if (t1 <= t0) return vec4(0.0, 0.0, 0.0, 1.0);
+  vec3 em = vec3(0.0); float tr = 1.0, dt = (t1 - t0) / 40.0, jit = hash13(vec3(gl_FragCoord.xy, 3.7));   // jittered steps: no banding
+  for (int i = 0; i < 40; i++) {
+    vec3 p = pos + d * (t0 + (float(i) + jit) * dt); float rr = length(p), hgt = rr - 1.0;
+    if (hgt < 0.0) { if (floorOn) break; hgt = 0.0; }
+    vec3 nn = p / rr;
+    float col = (0.25 + smoothstep(0.55, 0.85, vnoise(nn * 2200.0))) * (0.5 + 0.8 * (1.0 - smoothstep(0.0, 0.2, cellEdge(nn * 32.0))));   // a glowing haze with brighter jets in it
+    float top = 0.004 + 0.009 * vnoise(nn * 700.0 + 7.0);
+    float dens = col * (1.0 - smoothstep(top * 0.55, top, hgt));
+    em += HA * dens * dt * 70.0 * tr; tr *= exp(-dens * dt * 14.0);
+  }
+  return vec4(em, tr);
+}
+vec3 renderHa(vec3 d, vec3 pos, float px){
+  float r = length(pos);
+  float b = dot(pos, d), c = r * r - 1.0, disc = b * b - c;
+  vec3 col = sky(d, 1.0) * 0.5;
+  float tHit = 1e9;
+  if (disc > 0.0 && -b - sqrt(disc) > 0.0) {
+    tHit = -b - sqrt(disc); vec3 s = pos + d * tHit; float mu = clamp(-dot(s, d), 0.0, 1.0);
+    col = HA * haDisc(s, mu, tHit * px / max(mu, 0.05));
+  } else if (b < 0.0) {
+    float ca = sqrt(max(dot(pos, pos) - b * b, 0.0)), h = max(ca - 1.0, 0.0); vec3 cp = normalize(pos - d * b);
+    float fringe = exp(-h / 0.0035) * (0.55 + 0.7 * vnoise(cp * 2600.0));                       // the spicule fringe round the edge
+    float mask = smoothstep(0.6, 0.74, fbm(cp * 5.0 + 1.3));                                     // where prominences stand
+    float pr = mask * exp(-h / (0.012 + 0.035 * mask)) * smoothstep(0.42, 0.72, fbm(cp * 40.0 + vec3(h * 26.0)));   // threads of glowing gas, arching up
+    fringe *= smoothstep(1.008, 1.02, r);                       // from inside the spicule layer the march below draws it instead
+    col += HA * (fringe * 0.95 + pr * 0.85);
+  }
+  if (r < 1.02) {
+    vec4 sp = spicules(pos, d, tHit, true); col = col * sp.a + sp.rgb;
+    // the chromosphere has no hard floor: its glow thickens over a few hundred km, so the horizon is soft
+    float ca = sqrt(max(dot(pos, pos) - b * b, 0.0)) - 1.0;
+    if (b < 0.0 && abs(ca) < 0.0012) {
+      vec4 sa = spicules(pos, d, 1e9, false);
+      vec3 above = sky(d, 1.0) * 0.5 * sa.a + sa.rgb;
+      vec3 below = col;
+      col = mix(below, above, smoothstep(-0.0012, 0.0004, ca));
+    }
+  }
+  return col;
+}
+vec3 render(vec3 d, vec3 pos, float px){
+  float r = length(pos); vec3 n = pos / max(r, 1e-6);
+  if (r >= 1.0) {
+    // outside: hit the photosphere or miss it
+    float b = dot(pos, d), c = r * r - 1.0, disc = b * b - c;
+    vec3 bg = sky(d, 1.0) * 0.5;
+    float ca = sqrt(max(dot(pos, pos) - b * b, 0.0));
+    if (disc > 0.0 && -b - sqrt(disc) > 0.0) {
+      float tt = -b - sqrt(disc); vec3 s = pos + d * tt;
+      float mu = clamp(-dot(s, d), 0.0, 1.0);
+      float foot = tt * px / max(mu, 0.05);                    // footprint of one pixel on the surface, in solar radii
+      float near = 1.0 - smoothstep(0.00035, 0.0011, foot), amp = 0.07 * near;
+      float farA = 0.035 * (1.0 - near) * (1.0 - smoothstep(0.006, 0.03, foot));
+      float Te = TEFF * (1.0 + (amp > 0.0 ? amp * gran(s) : 0.0) + farA * granFar(s) + 0.014 * (fbm(s * 140.0) - 0.5));
+      Te = spotT(s, Te);
+      // the visible surface is corrugated: a slope facing you shows deeper, hotter gas, a slope turned away shows cooler gas
+      if (amp > 0.0) { vec3 tg = gTilt - dot(gTilt, s) * s; mu = clamp(dot(normalize(s + tg * (amp / 0.055)), -d), 0.0, 1.0); }
+      float T = Te * pow(0.5 + 0.75 * mu, 0.25);                // limb darkening and reddening, Eddington
+      return glow(T);
+    }
+    if (b < 0.0) {
+      // the corona: pearly streamers reaching out several radii, fading roughly as r^-4; a thin red chromosphere at the limb
+      vec3 cp = normalize(pos - d * b);
+      float h = max(ca - 1.0, 0.0);
+      float streak = fbm(cp * 4.0 + 3.0) * 0.7 + fbm(cp * 11.0 + 9.0) * 0.5;
+      float cor = 0.05 * pow(1.0 + h, -4.5) * (0.35 + 1.3 * smoothstep(0.35, 0.8, streak));
+      bg += vec3(0.95, 0.96, 1.0) * cor + vec3(1.0, 0.25, 0.3) * 0.08 * exp(-h / 0.006);
+    }
+    return bg;
+  }
+  // inside
+  float depth = (1.0 - r) * RKM;                                 // km below the photosphere
+  float t0 = (2.0 / 3.0) * exp(min(depth / 70.0, 80.0));
+  float mu = dot(d, n);                                          // > 0 looking up
+  float Tdeep = max(Ttab(r), 12300.0);
+  if (t0 > 400.0) return glow(Tdeep);                            // light goes nowhere: the same glow every way you look
+  // near the top: what you see comes from about one optical depth away, so the granules still show around you
+  float dz = mu < 0.0 ? 70.0 * log(1.0 + (-mu) / t0) : 70.0 * log(max(t0, 1e-3) / max(t0 - min(mu, t0 * 0.95), 1e-3));
+  vec3 tang = d - mu * n; float tl = length(tang);
+  float off = dz * tl / max(abs(mu), 0.12) / RKM;
+  vec3 s = normalize(n + (tl > 1e-5 ? tang / tl : vec3(0.0)) * off);
+  float foot = (off * RKM + 50.0) / RKM * px * 60.0;
+  float amp = 0.055 * (1.0 - smoothstep(0.0006, 0.0018, foot));
+  float Te = spotT(s, TEFF * (1.0 + amp * gran(s)));
+  float T = Tray(min(t0, 30.0), mu, Te);
+  T = mix(T, Tdeep, smoothstep(30.0, 400.0, t0));
+  vec3 col = glow(T);
+  if (mu > 0.0) col += stars(d) * exp(-t0 / max(mu, 1e-3));
+  return col;
+}
+vec3 aces(vec3 x){ return clamp((x * (2.51 * x + 0.03)) / (x * (2.43 * x + 0.59) + 0.14), 0.0, 1.0); }
+void main(){
+  vec2 uv = (gl_FragCoord.xy * 2.0 - uRes) / min(uRes.x, uRes.y);
+  vec3 d = normalize(uF * uFy + uv.x * uR + uv.y * uU);
+  vec3 pos = vec3(0.0, 0.0, uZ);
+  float px = 2.0 / (uFy * min(uRes.x, uRes.y));
+  vec3 col;
+  if (uHa > 0.5 && length(pos) >= 1.0) col = renderHa(d, pos, px);
+  else { col = render(d, pos, px); if (uHa > 0.5) col = HA * dot(col, vec3(0.2126, 0.7152, 0.0722)) * 1.6; }
+  o = vec4(pow(aces(col * uExp), vec3(1.0 / 2.2)), 1.0);
+}`;
+</script>
+<script>
+function sh(t, s){ const x = gl.createShader(t); gl.shaderSource(x, s); gl.compileShader(x); if (!gl.getShaderParameter(x, gl.COMPILE_STATUS)) { window.__shaderErr = gl.getShaderInfoLog(x); throw new Error(gl.getShaderInfoLog(x)); } return x; }
+const prog = gl.createProgram(); gl.attachShader(prog, sh(gl.VERTEX_SHADER, VS)); gl.attachShader(prog, sh(gl.FRAGMENT_SHADER, FS)); gl.linkProgram(prog); gl.useProgram(prog);
+const buf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, buf); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 3,-1, -1,3]), gl.STATIC_DRAW);
+const loc = gl.getAttribLocation(prog, 'p'); gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+const U = {}; ['uRes','uF','uR','uU','uZ','uFy','uExp','uTime','uHa'].forEach(n => U[n] = gl.getUniformLocation(prog, n));
+
+const V = { add:(a,b)=>[a[0]+b[0],a[1]+b[1],a[2]+b[2]], mul:(a,s)=>[a[0]*s,a[1]*s,a[2]*s], dot:(a,b)=>a[0]*b[0]+a[1]*b[1]+a[2]*b[2],
+  cross:(a,b)=>[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]], norm:a=>{const l=Math.hypot(...a)||1;return [a[0]/l,a[1]/l,a[2]/l];} };
+
+// ---- the model Sun (standard solar model, tabulated), shared with the validation page
+const RKM = 695700, TEFF = 5772, GG = 6.674e-11, RSUN = 6.957e8, MSUN = 1.9885e30;
+const XT = [0,0.05,0.1,0.15,0.2,0.25,0.3,0.35,0.4,0.5,0.6,0.7,0.8,0.9,0.95,0.98,0.99,0.995,0.999,1.0];
+const TT = [15.7,15.0,13.4,11.6,9.9,8.5,7.3,6.4,5.6,4.4,3.4,2.4,1.3,0.65,0.33,0.15,0.08,0.045,0.012,0.0058].map(t => t * 1e6);
+const RHO = [149.3,121.8,87.4,57.0,35.4,20.1,12.0,7.07,4.17,1.45,0.52,0.18,0.063,0.021,0.008,0.0025,0.001,4e-4,5e-5,2e-7];   // g/cm^3
+const logInterp = (tab, x) => { x = Math.min(1, Math.max(0, x)); for (let i = 1; i < XT.length; i++) if (x <= XT[i]) { const f = (x - XT[i-1]) / (XT[i] - XT[i-1]); return Math.exp(Math.log(tab[i-1]) + f * (Math.log(tab[i]) - Math.log(tab[i-1]))); } return tab[tab.length - 1]; };
+const Tof = x => logInterp(TT, x), rhoOf = x => logInterp(RHO, x);
+// enclosed mass and gravity, integrated once
+const NM = 4000, MENC = new Float64Array(NM + 1);
+(() => { let m = 0; MENC[0] = 0; const dx = 1 / NM; for (let i = 0; i < NM; i++) { const xa = i * dx, xb = (i + 1) * dx, xm = (xa + xb) / 2;
+  const f = x => 4 * Math.PI * x * x * rhoOf(x) * 1000; m += dx / 6 * (f(xa) + 4 * f(xm) + f(xb)) * RSUN * RSUN * RSUN; MENC[i + 1] = m; } })();
+const Menc = x => { x = Math.min(1, Math.max(0, x)); const k = x * NM, i = Math.min(NM - 1, Math.floor(k)), f = k - i; if (i === 0) return MENC[1] * f * f * f; return MENC[i] + f * (MENC[i + 1] - MENC[i]); };
+const gOf = x => x < 1e-6 ? 0 : GG * Menc(Math.min(x, 1)) / Math.pow(x * RSUN, 2);
+const CAPSULE = 200;   // g/cm^3: the capsule is denser than anything in the Sun, so it settles at the centre
+const weightG = x => x >= 1 ? GG * MSUN / Math.pow(x * RSUN, 2) / 9.81 : gOf(x) * (1 - rhoOf(x) / CAPSULE) / 9.81;
+
+const st = { ha: false, speed: 1, z: 40, yaw: 0, pitch: 0, fly: null, engine: true, moved: true, keys: {}, trail: [], exp: 2.5, time: 0, shake: 0, end: false, rest: 0 };
+const Z_MAX = 40;
+
+function basis(yawOff, pitchOff){
+  const sgn = st.z >= 0 ? 1 : -1, inward = [0, 0, -sgn], up0 = [0, 1, 0];
+  const R0 = V.norm(V.cross(inward, up0)), U0 = V.cross(R0, inward);
+  const yw = st.yaw + (yawOff || 0), pt = Math.max(-1.55, Math.min(1.55, st.pitch + (pitchOff || 0)));
+  const cy = Math.cos(yw), sy = Math.sin(yw), cp = Math.cos(pt), sp = Math.sin(pt);
+  const F = V.norm(V.add(V.mul(V.add(V.mul(inward, cy), V.mul(R0, sy)), cp), V.mul(U0, sp)));
+  const R = V.norm(V.cross(F, U0)), Uu = V.cross(R, F);
+  return { F, R, U: Uu };
+}
+
+let DPR = Math.min(window.devicePixelRatio || 1, 2), scale = 0.75;
+function resize(){
+  const w = Math.round(innerWidth * DPR * scale), h = Math.round(innerHeight * DPR * scale);
+  if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; st.moved = true; }
+}
+// slider: distance from the centre, log in altitude outside, straight depth inside
+const zoom = $('zoom'), knob = $('knob');
+const ALT0 = 0.0004, YS = 0.5;   // the surface sits at the slider's middle
+const ZtoY = z => { const r = Math.abs(z); if (r >= 1) return YS * (1 - Math.log(1 + (r - 1) / ALT0) / Math.log(1 + (Z_MAX - 1) / ALT0)); return YS + (1 - YS) * (1 - r); };
+const YtoZ = y => { if (y <= YS) return 1 + ALT0 * (Math.exp((1 - y / YS) * Math.log(1 + (Z_MAX - 1) / ALT0)) - 1); return 1 - (y - YS) / (1 - YS); };
+[[40, '40R☉'], [5, '5R☉'], [1.1, '0.1R☉'], [1, 'Surface'], [0.71, 'Radiative'], [0.25, 'Core'], [0, 'Centre']].forEach(([z, t]) => {
+  const d = document.createElement('div'); d.className = 'tick'; d.textContent = t; d.style.top = (12 + ZtoY(z) * (230 - 24)) + 'px'; zoom.appendChild(d);
+});
+function setZ(z){ st.z = Math.max(st.engine ? 0 : -1, Math.min(Z_MAX, z)); st.moved = true; }
+function zoomFromEvent(e){ if (st.fly || !st.engine) return; const r = zoom.getBoundingClientRect(); const y = Math.min(1, Math.max(0, (e.clientY - r.top - 12) / (r.height - 24))); setZ(YtoZ(y)); }
+let zDrag = false;
+zoom.addEventListener('pointerdown', e => { zDrag = true; zoom.setPointerCapture(e.pointerId); zoomFromEvent(e); e.stopPropagation(); });
+zoom.addEventListener('pointermove', e => { if (zDrag) zoomFromEvent(e); });
+zoom.addEventListener('pointerup', () => zDrag = false);
+addEventListener('wheel', e => { if (st.fly || !st.engine) return; setZ(YtoZ(Math.min(1, Math.max(0, ZtoY(st.z) + e.deltaY * 0.0006)))); e.preventDefault(); }, { passive: false });
+let drag = null;
+canvas.addEventListener('pointerdown', e => { drag = { x: e.clientX, y: e.clientY }; canvas.setPointerCapture(e.pointerId); });
+canvas.addEventListener('pointermove', e => { if (!drag) return; const k = 2.2 / Math.min(innerWidth, innerHeight);
+  st.yaw -= (e.clientX - drag.x) * k; st.pitch = Math.max(-1.55, Math.min(1.55, st.pitch + (e.clientY - drag.y) * k)); drag = { x: e.clientX, y: e.clientY }; st.moved = true; if (st.fly) st.fly.userLook = true; });
+canvas.addEventListener('pointerup', () => drag = null);
+
+// ---- the trip: fly in, look across the surface, come down to hover, cut the engine, sink to the centre
+const sm = x => { x = Math.min(1, Math.max(0, x)); return x * x * (3 - 2 * x); };
+const toA = z => Math.log(1 + Math.max(z - 1, 0) / ALT0), fromA = a => 1 + ALT0 * (Math.exp(a) - 1);
+const HC = 2000, toS = h => Math.sign(h) * Math.log(1 + Math.abs(h) / HC), fromS = s => Math.sign(s) * HC * (Math.exp(Math.abs(s)) - 1);   // h: km below the photosphere
+$('fly').onclick = () => {
+  if (st.fly || !st.engine) return;
+  st.trail = [];
+  if (st.z > 1.02) st.fly = { ph: 'appr', t: 0, T: 12, a0: toA(st.z), a1: toA(1.02) };
+  else st.fly = { ph: 'look', t: 0, z0: st.z, p0: st.pitch };
+};
+$('filt').onclick = e => { e.stopPropagation(); st.ha = !st.ha; $('filt').textContent = st.ha ? 'Filter: H-alpha' : 'Filter: off'; };
+$('speedBtn').onclick = () => { st.speed = st.speed === 1 ? 4 : st.speed === 4 ? 0.25 : 1; $('speedBtn').textContent = 'Speed ×' + st.speed; };
+$('again').onclick = () => $('home').onclick();
+$('home').onclick = () => { $('endMsg').classList.remove('on'); st.fly = null; st.z = 40; st.yaw = 0; st.pitch = 0; st.engine = true; st.end = false; st.rest = 0; st.trail = []; st.moved = true; $('acts').style.display = ''; if (snd) engineSound(true); };
+
+function step(dt){
+  const f = st.fly; if (!f) return;
+  f.t += dt;
+  const look = (y, p, k) => { if (!f.userLook) { st.yaw += (y - st.yaw) * Math.min(1, dt * k); st.pitch += (p - st.pitch) * Math.min(1, dt * k); } };
+  if (f.ph === 'appr') {
+    // evenly in log altitude: quick across empty space, slower as the surface comes up
+    const u = Math.min(1, f.t / f.T), ai = 0.12, vmax = 1 / (1 - ai), e = u < ai ? vmax * u * u / (2 * ai) : (u > 1 - ai ? 1 - vmax * (1 - u) * (1 - u) / (2 * ai) : vmax * (u - ai / 2));
+    setZ(fromA(f.a0 + (f.a1 - f.a0) * e)); look(0, 0, 2.5);
+    if (u >= 1) st.fly = { ph: 'look', t: 0, z0: st.z, p0: st.pitch };
+    return;
+  }
+  if (f.ph === 'look') {
+    // tilt up to the horizon: the granules run off to a curved edge with black space above, the spots ahead
+    if (!f.userLook) { st.yaw = 0; st.pitch = f.p0 + (1.42 - f.p0) * sm(f.t / 2.6); }
+    if (f.t > 4.6) st.fly = { ph: 'close', t: 0, a0: toA(st.z), a1: toA(1.0025), p0: st.pitch };
+    return;
+  }
+  if (f.ph === 'close') {
+    // drop to 1700 km beside the big spot group and look ahead and down at it: cells and spots up close
+    const u = Math.min(1, f.t / 3.5); setZ(fromA(f.a0 + (f.a1 - f.a0) * sm(u)));
+    if (!f.userLook) { st.yaw = 0; st.pitch = f.p0 + (1.12 - f.p0) * sm(u); }
+    if (f.t > 7.5) st.fly = { ph: 'down', t: 0, a0: toA(st.z), a1: toA(1.00025), T: 4, p0: st.pitch };
+    return;
+  }
+  if (f.ph === 'down') {
+    const u = Math.min(1, f.t / f.T); setZ(fromA(f.a0 + (f.a1 - f.a0) * sm(u)));
+    if (!f.userLook) { st.pitch = f.p0 + (1.5 - f.p0) * sm(u); }
+    if (u >= 1) st.fly = { ph: 'hover', t: 0 };
+    return;
+  }
+  if (f.ph === 'hover') {
+    // the engine holds you up against 28 g; then it stops
+    if (f.t > 2.6) { st.engine = false; engineSound(false); st.fly = { ph: 'sink', t: 0, T: 19, s0: toS((1 - st.z) * RKM), s1: toS(RKM) }; $('acts').style.display = 'none'; }
+    return;
+  }
+  if (f.ph === 'sink') {
+    // drag holds you to a slow terminal speed; it eases off as gravity fades toward the centre
+    const u = Math.min(1, f.t / f.T), ai = 0.05, ao = 0.25;
+    const vmax = 1 / (1 - ai / 2 - ao / 2);
+    let e; if (u < ai) e = vmax * u * u / (2 * ai); else if (u < 1 - ao) e = vmax * (u - ai / 2); else { const w = 1 - u; e = 1 - vmax * w * w / (2 * ao); }
+    const h = fromS(f.s0 + (f.s1 - f.s0) * e); setZ(1 - h / RKM);
+    if (!f.userLook) { st.yaw = 0; st.pitch = 1.5 - 0.5 * sm((u - 0.05) / 0.3); }
+    if (u >= 1) st.fly = { ph: 'settle', t: 0 };
+    return;
+  }
+  if (f.ph === 'settle') {
+    // a small bob through the centre, damped by the gas, then still
+    setZ(-0.004 * Math.sin(2 * Math.PI * f.t / 3) * Math.exp(-f.t / 1.3));
+    if (f.t > 4.5) { setZ(0); st.fly = null; st.rest = 0.001; }
+  }
+}
+
+// ---- what you see, summed on the CPU for the eye's adaptation: the same light as the shader, without the granules
+function TrayJS(t0, mu, Te){
+  let I; if (mu < 0) I = 0.5 + 0.75 * (t0 - mu); else { const m = Math.max(mu, 1e-3), E = Math.exp(-t0 / m); I = (0.5 + 0.75 * t0) * (1 - E) - 0.75 * (m - (t0 + m) * E); }
+  return Te * Math.pow(Math.max(I, 1e-8), 0.25);
+}
+const LrelJS = T => (Math.exp(26160 / TEFF) - 1) / (Math.exp(Math.min(26160 / T, 80)) - 1);
+function lumDir(d, z){
+  const r = Math.abs(z);
+  if (r >= 1) { const b = d[2] * z, c = z * z - 1, disc = b * b - c; if (disc > 0 && -b - Math.sqrt(disc) > 0) { const t = -b - Math.sqrt(disc), s = [d[0] * t, d[1] * t, z + d[2] * t], mu = Math.max(0, -V.dot(s, d)); return LrelJS(TEFF * Math.pow(0.5 + 0.75 * mu, 0.25)); } return 0; }
+  const depth = (1 - r) * RKM, t0 = (2 / 3) * Math.exp(Math.min(depth / 70, 80)), mu = d[2] * Math.sign(z || 1), Td = Math.max(Tof(r), 12300);
+  if (t0 > 400) return LrelJS(Td);
+  let T = TrayJS(Math.min(t0, 30), mu, TEFF); const k = sm((t0 - 30) / 370); T = T + (Td - T) * k; return LrelJS(T);
+}
+function meanLum(B, fy){
+  // mean brightness of what is lit, and the share of the view the Sun fills
+  let s = 0, n = 0, hit = 0;
+  for (let j = -4; j <= 4; j++) for (let i = -4; i <= 4; i++) { const u = i / 4 * 0.9, v = j / 4 * 0.6, L = lumDir(V.norm(V.add(V.add(V.mul(B.F, fy), V.mul(B.R, u)), V.mul(B.U, v))), st.z); if (L > 0) { s += L; hit++; } n++; }
+  return { lit: hit ? s / hit : 0, frac: hit / n };
+}
+
+// ---- sound: a warm hum outside, the roar of boiling gas near the top, calm and a deep drone further in
+let AC = null, snd = null, soundOn = false;
+function buildAudio(){
+  try { AC = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { return; }
+  const master = AC.createGain(); master.gain.value = 0;
+  const comp = AC.createDynamicsCompressor(); comp.threshold.value = -24; comp.knee.value = 12; comp.ratio.value = 4;
+  const mk = AC.createGain(); mk.gain.value = 2.2; master.connect(comp).connect(mk).connect(AC.destination);
+  const lp = AC.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 900; lp.Q.value = 0.3; lp.connect(master);
+  const pad = AC.createGain(); pad.gain.value = 0; pad.connect(lp); const oscs = [];
+  [65.41, 98, 130.81, 164.81, 196].forEach((f, i) => { const o = AC.createOscillator(); o.type = i < 2 ? 'sine' : 'triangle'; o.frequency.value = f; o.detune.value = (i - 2) * 4; const a = AC.createGain(); a.gain.value = [0.5, 0.32, 0.17, 0.09, 0.05][i]; o.connect(a).connect(pad); o.start(); oscs.push(o); });
+  const nb = AC.createBuffer(1, AC.sampleRate * 2, AC.sampleRate), nd = nb.getChannelData(0); for (let i = 0; i < nd.length; i++) nd[i] = Math.random() * 2 - 1;
+  const ns = AC.createBufferSource(); ns.buffer = nb; ns.loop = true;
+  const bp = AC.createBiquadFilter(); bp.type = 'lowpass'; bp.frequency.value = 300; bp.Q.value = 0.7;
+  const roar = AC.createGain(); roar.gain.value = 0; ns.connect(bp).connect(roar).connect(master); ns.start();
+  const lfo = AC.createOscillator(); lfo.frequency.value = 0.7; const lg = AC.createGain(); lg.gain.value = 0; lfo.connect(lg).connect(roar.gain); lfo.start();   // the boiling surges
+  const dr = AC.createOscillator(); dr.type = 'sine'; dr.frequency.value = 41; const dr2 = AC.createOscillator(); dr2.type = 'sine'; dr2.frequency.value = 61.7;
+  const drone = AC.createGain(); drone.gain.value = 0; dr.connect(drone); dr2.connect(drone); drone.connect(master); dr.start(); dr2.start();
+  const eo = AC.createOscillator(); eo.type = 'sawtooth'; eo.frequency.value = 55; const ef = AC.createBiquadFilter(); ef.type = 'lowpass'; ef.frequency.value = 220;
+  const eng = AC.createGain(); eng.gain.value = 0; eo.connect(ef).connect(eng).connect(master); eo.start();
+  snd = { master, lp, pad, oscs, bp, roar, lg, drone, dr, dr2, eng, eo, nbuf: nb };
+  master.gain.setTargetAtTime(0.8, AC.currentTime, 1.0);
+  if (AC.state === 'suspended') AC.resume();
+  const b0 = AC.createBuffer(1, 1, AC.sampleRate), s0 = AC.createBufferSource(); s0.buffer = b0; s0.connect(AC.destination); s0.start(0);
+}
+function startAudio(){ if (!soundOn) return; if (!AC) buildAudio(); else if (AC.state === 'suspended') AC.resume(); }
+$('sound').onclick = e => {
+  e.stopPropagation(); soundOn = !soundOn; $('sound').textContent = soundOn ? 'Sound: on' : 'Sound: off';
+  if (soundOn) { startAudio(); if (snd) snd.master.gain.setTargetAtTime(0.8, AC.currentTime, 0.3); }
+  else if (snd) snd.master.gain.setTargetAtTime(0, AC.currentTime, 0.2);
+};
+function engineSound(on){
+  if (!snd) return; const t = AC.currentTime;
+  if (!on) { snd.eo.frequency.setTargetAtTime(22, t, 0.35); snd.eng.gain.setTargetAtTime(0, t + 0.15, 0.4);
+    const o = AC.createOscillator(), g = AC.createGain(); o.frequency.setValueAtTime(120, t); o.frequency.exponentialRampToValueAtTime(35, t + 0.8);
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.35, t + 0.02); g.gain.exponentialRampToValueAtTime(0.0005, t + 1.2); o.connect(g).connect(snd.master); o.start(t); o.stop(t + 1.3); }
+  else snd.eo.frequency.setTargetAtTime(55, t, 0.2);
+}
+function plungeSound(){
+  // going under: the roar of the boiling gas swells and closes over you
+  if (!snd || !soundOn) return;
+  const t = AC.currentTime, n = AC.createBufferSource(), f = AC.createBiquadFilter(), g = AC.createGain();
+  n.buffer = snd.nbuf; n.loop = true; f.type = 'lowpass'; f.frequency.setValueAtTime(250, t); f.frequency.linearRampToValueAtTime(1300, t + 0.5); f.frequency.exponentialRampToValueAtTime(220, t + 3);
+  g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.7, t + 0.45); g.gain.exponentialRampToValueAtTime(0.0005, t + 3.2);
+  n.connect(f).connect(g).connect(snd.master); n.start(t); n.stop(t + 3.3);
+}
+function endSound(){
+  if (!snd || !soundOn) return;
+  const t = AC.currentTime, o = AC.createOscillator(), g = AC.createGain();
+  o.frequency.setValueAtTime(90, t); o.frequency.exponentialRampToValueAtTime(28, t + 1.4);
+  g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.7, t + 0.03); g.gain.exponentialRampToValueAtTime(0.0005, t + 2.2);
+  o.connect(g).connect(snd.master); o.start(t); o.stop(t + 2.3);
+}
+function updateAudio(){
+  if (!snd || !soundOn) return;
+  const t = AC.currentTime, r = Math.abs(st.z), depth = (1 - r) * RKM;
+  const nearTop = r >= 1 ? Math.exp(-(r - 1) / 0.01) : 1;
+  const conv = r < 1 && r > 0.71 ? 1 : 0, deep = r < 0.71 ? sm((0.71 - r) / 0.3) : 0;
+  snd.pad.gain.setTargetAtTime(0.28 * (r >= 1 ? 1 : Math.max(0, 1 - depth / 4000)), t, 0.4);
+  const roar = r >= 1 ? 0.35 * nearTop : (conv ? 0.45 : 0.45 * Math.max(0, 1 - (0.71 - r) / 0.04));
+  snd.roar.gain.setTargetAtTime(roar, t, 0.3); snd.lg.gain.setTargetAtTime(roar * 0.6, t, 0.3);
+  snd.bp.frequency.setTargetAtTime(r >= 1 ? 260 + 400 * nearTop : 180, t, 0.3);
+  snd.drone.gain.setTargetAtTime(r < 1 ? 0.06 + 0.2 * deep : 0, t, 0.6);
+  snd.dr.frequency.setTargetAtTime(41 + 14 * deep, t, 0.8); snd.dr2.frequency.setTargetAtTime(61.7 + 21 * deep, t, 0.8);
+  snd.eng.gain.setTargetAtTime(st.engine && r < 1.05 ? 0.12 : (st.engine ? 0.04 : 0), t, 0.2);
+}
+
+addEventListener('keydown', e => { const k = e.key.toLowerCase(); if (k === 'w' || k === 'arrowup') st.keys.w = true; if (k === 's' || k === 'arrowdown') st.keys.s = true; });
+addEventListener('keyup', e => { const k = e.key.toLowerCase(); if (k === 'w' || k === 'arrowup') st.keys.w = false; if (k === 's' || k === 'arrowdown') st.keys.s = false; });
+const fmt = n => Math.round(n).toLocaleString('en-US');
+let last = performance.now();
+function frame(now){
+  const dt = Math.min(0.25, (now - last) / 1000); last = now;
+  const sdt = dt * (st.speed || 1);
+  st.time += sdt;
+  const zPrev = st.z;
+  step(sdt);
+  if (zPrev >= 1 && st.z < 1) { st.plunge = 1; plungeSound(); }
+  st.plunge = Math.max(0, (st.plunge || 0) - dt * 0.9);
+  updateAudio();
+  if (!st.fly && st.engine && (st.keys.w || st.keys.s)) {
+    // move the way you look; only the part along the line to the centre counts
+    const F = basis().F, sg = (st.keys.w ? 1 : -1) * F[2] * Math.sign(st.z || 1);
+    const r = Math.abs(st.z), v = r >= 1 ? (r - 1 + 0.0004) * 1.2 : 0.12;
+    setZ(st.z + sg * v * dt);
+  }
+  // shaken by the rising and sinking gas in the outer third
+  const r = Math.abs(st.z), inConv = r < 1 && r > 0.71 ? Math.min(1, (1 - r) * RKM / 300) * Math.min(1, (r - 0.71) / 0.02) : 0;
+  const sinking = st.fly && st.fly.ph === 'sink' ? 1 : 0.25;
+  const shA = 0.012 * inConv * sinking, tt = st.time;
+  const sy = shA * (Math.sin(tt * 7.3) * 0.6 + Math.sin(tt * 13.1 + 1.3) * 0.4), sp = shA * (Math.sin(tt * 5.9 + 0.7) * 0.6 + Math.sin(tt * 11.7 + 2.1) * 0.4);
+  if (st.rest > 0) { st.rest += sdt; if (st.rest > 4 && !st.end) { st.end = true; endSound(); $('endMsg').classList.add('on'); } }
+  resize();
+  const pl = st.plunge || 0, jolt = 0.05 * pl * pl * Math.sin(st.time * 31);
+  const B = basis(sy + jolt, sp - jolt * 0.7), fy = 1 / Math.tan((35 + 9 * pl * pl) * Math.PI / 180);
+  // the eye adapts slowly, in log brightness, so going deeper first dazzles and then settles
+  // like an eye in space: tuned to the dark sky and its stars while the Sun is a small blazing disc,
+  // stepping down to the Sun's own brightness once it fills most of the view
+  const kIn = r < 1 ? sm((1 - r) * RKM / 400) : 0, ml = meanLum(B, fy);
+  const tSun = (0.32 + 0.88 * kIn) / (ml.lit + 1e-4), tSky = 2.5, w = r < 1 ? 1 : sm((ml.frac - 0.3) / 0.45);
+  const target = Math.min(300, Math.max(1e-7, Math.exp(Math.log(tSky) + (Math.log(tSun) - Math.log(tSky)) * w)));
+  st.exp = Math.exp(Math.log(st.exp) + (Math.log(target) - Math.log(st.exp)) * Math.min(1, dt * (target < st.exp ? 0.9 : 1.4)));   // brighter takes the eye longer
+  gl.viewport(0, 0, canvas.width, canvas.height);
+  gl.uniform2f(U.uRes, canvas.width, canvas.height);
+  gl.uniform3fv(U.uF, B.F); gl.uniform3fv(U.uR, B.R); gl.uniform3fv(U.uU, B.U);
+  gl.uniform1f(U.uZ, st.z); gl.uniform1f(U.uFy, fy); gl.uniform1f(U.uExp, st.exp); gl.uniform1f(U.uTime, st.time * 0.6); gl.uniform1f(U.uHa, st.ha ? 1 : 0);
+  gl.drawArrays(gl.TRIANGLES, 0, 3);
+  // read-out
+  if (r >= 1.1) { $('dist').innerHTML = r.toFixed(1) + '<small>R☉</small>'; }
+  else if (r >= 1) { $('dist').innerHTML = fmt((r - 1) * RKM) + '<small>km up</small>'; }
+  else { $('dist').innerHTML = fmt((1 - r) * RKM) + '<small>km down</small>'; }
+  $('side').textContent = r >= 1 ? 'Above the surface' : (r < 0.02 ? 'At the centre' : (r > 0.71 ? 'Convection zone' : (r > 0.25 ? 'Radiative zone' : 'Core')));
+  const Tl = r >= 1 ? null : Tof(r), wt = (st.engine && r < 1.05) || r < 1 ? weightG(Math.max(r, 1e-6)) : 0;
+  $('info').textContent = (Tl ? (Tl >= 1e6 ? (Tl / 1e6).toFixed(1) + ' million K' : fmt(Tl) + ' K') + ' · ' : '') + 'Weight ' + (wt >= 10 ? Math.round(wt) : wt.toFixed(1)) + ' g · Engine ' + (st.engine ? 'on' : 'off');
+  knob.style.top = (12 + ZtoY(st.z) * (zoom.clientHeight - 24)) + 'px';
+  // over a bright view the read-outs turn dark, over a dark one they stay light
+  {
+    let L = 0, n = 0; for (let j = 0; j < 3; j++) for (let i = 0; i < 3; i++) { const u = -0.95 + i * 0.15, v = 0.42 + j * 0.08; L += lumDir(V.norm(V.add(V.add(V.mul(B.F, fy), V.mul(B.R, u * innerWidth / Math.min(innerWidth, innerHeight))), V.mul(B.U, v * innerHeight / Math.min(innerWidth, innerHeight)))), st.z); n++; }
+    const x = L / n * st.exp, disp = x * (2.51 * x + 0.03) / (x * (2.43 * x + 0.59) + 0.14);
+    const lite = document.body.classList.contains('lite');
+    if (!lite && disp > 0.5) document.body.classList.add('lite'); else if (lite && disp < 0.38) document.body.classList.remove('lite');
+  }
+  drawEmb();
+  requestAnimationFrame(frame);
+}
+
+// ---- inset: a slice through the Sun, with you on it
+const emb = $('emb'), ectx = emb.getContext('2d');
+function drawEmb(){
+  const d = Math.min(window.devicePixelRatio || 1, 2), W = 230 * d, H = 230 * d;
+  if (emb.width !== W) { emb.width = W; emb.height = H; }
+  const c = ectx; c.clearRect(0, 0, W, H);
+  const cx = W / 2, cy = H / 2 + 14 * d, R = 70 * d;
+  const ring = (rr, fill) => { c.fillStyle = fill; c.beginPath(); c.arc(cx, cy, rr * R, 0, 7); c.fill(); };
+  ring(1, 'rgba(255,150,60,.22)'); ring(0.71, 'rgba(255,190,110,.26)'); ring(0.25, 'rgba(255,240,210,.42)');
+  c.strokeStyle = 'rgba(255,200,140,.65)'; c.lineWidth = 1 * d; c.beginPath(); c.arc(cx, cy, R, 0, 7); c.stroke();
+  // the base of the convection zone: a faint dashed ring
+  c.strokeStyle = 'rgba(255,190,120,.35)'; c.setLineDash([3 * d, 4 * d]); c.beginPath(); c.arc(cx, cy, 0.71 * R, 0, 7); c.stroke(); c.setLineDash([]);
+  // you: straight up from the centre, outside squeezed in log altitude
+  const rr = Math.abs(st.z), yv = rr <= 1 ? rr : 1 + 0.45 * Math.log(1 + (rr - 1) / 0.01) / Math.log(1 + (Z_MAX - 1) / 0.01);
+  const me = [cx, cy - Math.sign(st.z || 1) * yv * R];
+  if (st.fly || !st.engine) { const tr = st.trail; if (!tr.length || Math.abs(tr[tr.length - 1] - me[1]) > 0.5) tr.push(me[1]); }
+  const lt0 = document.body.classList.contains('lite');
+  if (st.trail.length > 1) { c.strokeStyle = lt0 ? 'rgba(168,98,40,.85)' : 'rgba(200,230,255,.55)'; c.lineWidth = 1.5 * d; c.beginPath(); c.moveTo(cx, st.trail[0]); c.lineTo(cx, st.trail[st.trail.length - 1]); c.stroke(); c.lineWidth = 1 * d; }
+  c.fillStyle = lt0 ? '#a85f22' : '#e8f4ff'; c.shadowColor = lt0 ? 'rgba(200,120,50,.7)' : '#9fd0ff'; c.shadowBlur = 10 * d; c.beginPath(); c.arc(me[0], me[1], 4 * d, 0, 7); c.fill(); c.shadowBlur = 0;
+  c.font = 10 * d + 'px -apple-system, Segoe UI, sans-serif'; c.textAlign = 'left';
+  const lt = document.body.classList.contains('lite');
+  c.fillStyle = lt ? 'rgba(150,85,35,.95)' : 'rgba(255,230,190,.8)'; c.fillText('core', cx + 0.05 * R, cy + 0.12 * R);
+  c.fillStyle = lt ? 'rgba(150,85,35,.9)' : 'rgba(255,210,150,.7)'; c.fillText('radiative', cx + 0.3 * R, cy + 0.34 * R);
+  c.fillStyle = lt ? 'rgba(150,85,35,.9)' : 'rgba(255,180,110,.7)'; c.fillText('convection', cx + 0.62 * R, cy + 0.78 * R);
+  // near the centre the label goes on the left, clear of the word core
+  const nearCore = Math.hypot(me[0] - cx, me[1] - cy) < 0.32 * R;
+  c.fillStyle = lt ? 'rgba(150,85,35,.95)' : '#cfe6ff';
+  if (nearCore) { c.textAlign = 'right'; c.fillText('you', me[0] - 8 * d, me[1] + 4 * d); c.textAlign = 'left'; }
+  else c.fillText('you', me[0] + 8 * d, me[1] + 4 * d);
+}
+
+// ---- validation
+function runVerify(){
+  const tb = document.querySelector('#vt tbody'); tb.innerHTML = '';
+  const row = (a, th, nu, src, dg) => { const err = Math.abs(nu - th) / Math.abs(th) * 100; const tr = document.createElement('tr'); tr.innerHTML = '<td>' + a + '</td><td class="n">' + th.toFixed(dg) + '</td><td class="n">' + nu.toFixed(dg) + '</td><td class="ok">' + (err < 0.001 ? '< 0.001%' : err.toFixed(3) + '%') + '</td><td style="opacity:.65">' + src + '</td>'; tb.appendChild(tr); };
+  const M = Menc(1);
+  row('Mass of the model Sun (10³⁰ kg)', MSUN / 1e30, M / 1e30, 'M = ∫ 4πr²ρ dr', 4);
+  row('Gravity at the surface (m/s²)', GG * MSUN / (RSUN * RSUN), gOf(1), 'g = GM / R²', 2);
+  row('Escape speed from the surface (km/s)', Math.sqrt(2 * GG * MSUN / RSUN) / 1000, Math.sqrt(2 * GG * M / RSUN) / 1000, 'v = √(2GM / R)', 2);
+  // the limb-darkened disc must give out exactly the flux sigma T^4: 2 ∫ I(mu) mu dmu with I = (T(mu)/Teff)^4
+  let F = 0; const N = 20000; for (let i = 0; i < N; i++) { const mu = (i + 0.5) / N, T = TEFF * Math.pow(0.5 + 0.75 * mu, 0.25); F += 2 * Math.pow(T / TEFF, 4) * mu / N; }
+  row('Light leaving the surface, over σT⁴', 1, F, 'F = 2π ∫ I(μ) μ dμ = σT<sub>eff</sub>⁴', 5);
+  // light from deep inside, seen from inside: the grey-atmosphere ray integral against its closed form
+  const t0 = 3, mu = 0.5; let I = 0; const Nn = 200000, top = t0; for (let i = 0; i < Nn; i++) { const t = (i + 0.5) / Nn * top; I += (0.5 + 0.75 * t) * Math.exp(-(t0 - t) / mu) / mu * top / Nn; }
+  const m = mu, E = Math.exp(-t0 / m), Ic = (0.5 + 0.75 * t0) * (1 - E) - 0.75 * (m - (t0 + m) * E);
+  row('Light from above, 3 optical depths down', I, Ic, 'I = ∫ S(t) e<sup>−(τ−t)/μ</sup> dt/μ', 5);
+  row('Centre-to-limb brightness (bolometric)', 0.4, Math.pow(TEFF * Math.pow(0.5, 0.25) / TEFF, 4) / Math.pow(TEFF * Math.pow(1.25, 0.25) / TEFF, 4), 'I(0) / I(1) = (2/3) / (5/3)', 4);
+  // why you end up at the centre and stay there
+  const head = t => { const tr = document.createElement('tr'); tr.innerHTML = '<td colspan="5" style="padding-top:14px;opacity:.85;font-weight:600">' + t + '</td>'; tb.appendChild(tr); };
+  const rowAbs = (a, th, nu, src, dg, unit) => { const tr = document.createElement('tr'); tr.innerHTML = '<td>' + a + '</td><td class="n">' + th.toFixed(dg) + '</td><td class="n">' + nu.toFixed(dg) + '</td><td class="ok">' + (Math.abs(nu - th) < Math.pow(10, -dg) ? 'exact' : Math.abs(nu - th).toFixed(dg) + unit) + '</td><td style="opacity:.65">' + src + '</td>'; tb.appendChild(tr); };
+  head('Why you sink to the centre and stay');
+  rowAbs('Gravity at the centre (m/s²)', 0, gOf(0), 'shells outside you pull equally every way', 3, '');
+  const xs = 0.002, rhoC = rhoOf(0) * 1000;
+  row('Gravity 1400 km from the centre (m/s²)', 4 / 3 * Math.PI * GG * rhoC * xs * RSUN, gOf(xs), 'g ≈ (4/3)πGρ<sub>c</sub> r for a uniform core; the real core thins slightly outward', 3);
+  rowAbs('Capsule minus densest gas (g/cm³)', CAPSULE - RHO[0], CAPSULE - rhoOf(0), 'positive: heavier than every layer, so it never floats up', 1, '');
+  rowAbs('Felt weight at the centre (g)', 0, weightG(1e-7), 'gravity × (1 − ρ<sub>gas</sub>/ρ<sub>capsule</sub>)', 3, '');
+  // a body as dense as water floats where the gas is as dense as water: find it by bisection on the model
+  let lo = 0, hi = 1; for (let k = 0; k < 60; k++) { const m = (lo + hi) / 2; if (rhoOf(m) > 1) lo = m; else hi = m; }
+  const i5 = 10, xw = XT[i5 - 1] + (XT[i5] - XT[i5 - 1]) * Math.log(1 / RHO[i5 - 1]) / Math.log(RHO[i5] / RHO[i5 - 1]);
+  row('Where a person (1 g/cm³) would float (R☉)', xw, (lo + hi) / 2, 'ρ<sub>gas</sub>(r) = 1 g/cm³', 4);
+  $('vnote').innerHTML =
+    '<div class="vh">What happens on the way</div><ul class="vl">' +
+    '<li>The surface. There is no ground. The photosphere is the layer where the gas turns from opaque to clear, thinner than the air at sea level.</li>' +
+    '<li>Granules. Hot gas wells up in cells about 1000 km across and sinks back down in the dark lanes between them. Sunspots are cooler, so they look dark.</li>' +
+    '<li>The limb. Near the edge you see only the upper, cooler layers, so the disc darkens and reddens there.</li>' +
+    '<li>Hovering. Gravity at the surface is 28 times Earth\'s. The engine holds you there.</li>' +
+    '<li>Going under. Below the photosphere light travels only a short way before it is absorbed and sent off again. Within a few hundred km everything looks the same in every direction.</li>' +
+    '<li>Sinking. Drag holds you to a slow, steady speed, so you feel your weight all the way down: close to 200 g at its peak, about a fifth of the way from the centre. In the outer third the gas boils and you are thrown about. Below it the gas is still.</li>' +
+    '<li>The centre. Gravity cancels from every side. You are weightless in the hottest, brightest place in the Sun. Push away and it pulls you back.</li></ul>' +
+    '<div class="vh">How it is computed</div>' +
+    'Temperature and density from a tabulated standard solar model, with gravity from the enclosed mass. Colour and brightness from the Planck spectrum at the local temperature, at 550 nm. ' +
+    'The surface layers follow a grey Eddington atmosphere, S(τ) = 3/4 (τ + 2/3) of the mean intensity. ' +
+    'One assumption: a capsule that withstands any heat and pressure, lets light in and keeps heat out, with a density of 200 g/cm³, denser than anything in the Sun. The sinking is time-compressed. ' +
+    'Exposure works like an eye: set by the dark sky while the Sun is a small disc, by the Sun once it fills the view. Beside the Sun, the stars and the corona are far fainter than they can be shown. ' +
+    'Filter: H-alpha shows the Sun through a filter that passes only hydrogen\'s red line at 656.3 nm, as solar telescopes do: the chromosphere above the photosphere, its network, filaments, spicules and prominences, drawn as a model of their typical sizes. Filter: off is the Sun as the eye sees it, white.';
+}
+$('verifyBtn').onclick = () => { $('verify').style.display = 'block'; setTimeout(runVerify, 30); };
+$('verifyClose').onclick = () => { $('verify').style.display = 'none'; };
+$('menuBtn').onclick = e => { e.stopPropagation(); const m = $('menu'); m.style.display = m.style.display === 'block' ? 'none' : 'block'; };
+window.addEventListener('pointerdown', e => { const m = $('menu'); if (m.style.display === 'block' && !m.contains(e.target) && e.target !== $('menuBtn')) m.style.display = 'none'; });
+document.querySelectorAll('#menu .mi[data-go]').forEach(el => el.onclick = () => { location.href = el.dataset.go; });
+window.__st = st; window.__fly = () => $('fly').onclick();
+requestAnimationFrame(frame);
+</script>
+</body></html>

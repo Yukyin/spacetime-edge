@@ -47,7 +47,7 @@
 <canvas id="c"></canvas>
 <div id="hud"><div class="big" id="dist">40.0<small>R</small></div><div class="side" id="side">Home universe</div><div id="hint">Drag to look around. W / S or scroll to move.</div></div>
 <div id="topR"><button class="btn" id="sound">Sound: off</button><button class="btn" id="home">Restart</button><button class="btn" id="menuBtn" aria-label="Scenes">☰</button></div>
-<div id="menu"><div class="mh">Scenes</div><div class="mi" data-go="index.html">Black hole</div><div class="mi on">Wormhole</div></div>
+<div id="menu"><div class="mh">Scenes</div><div class="mi" data-go="index.html">Black hole</div><div class="mi on">Wormhole</div><div class="mi" data-go="sun.html">The Sun</div></div>
 <button class="btn" id="verifyBtn">Validation</button>
 <div id="verify">
   <button class="btn close" id="verifyClose">Back</button>
@@ -230,13 +230,13 @@ const prog = gl.createProgram(); gl.attachShader(prog, sh(gl.VERTEX_SHADER, VS))
 const buf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, buf); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 3,-1, -1,3]), gl.STATIC_DRAW);
 const loc = gl.getAttribLocation(prog, 'p'); gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
 const U = {}; ['uRes','uJit','uDir','uF','uR','uU','uL','uFy','uExp','uM','uTc','uPulse','uPDir','uPh0'].forEach(n => U[n] = gl.getUniformLocation(prog, n));
-
+ 
 const V = { add:(a,b)=>[a[0]+b[0],a[1]+b[1],a[2]+b[2]], mul:(a,s)=>[a[0]*s,a[1]*s,a[2]*s], dot:(a,b)=>a[0]*b[0]+a[1]*b[1]+a[2]*b[2],
   cross:(a,b)=>[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]], norm:a=>{const l=Math.hypot(...a)||1;return [a[0]/l,a[1]/l,a[2]/l];} };
 const DIR0 = V.norm([0.0, 0.12, 1.0]); let DIR = DIR0.slice(); const AZ_E = V.norm(V.cross(V.mul(DIR0, -1), [0, 1, 0]));   // where you are, seen from the throat
 const st = { speed: 1, L: 40, yaw: 0, pitch: 0, fly: null, moved: true, still: 0, m: 0, fade: 1, tc: -1e9, col: null, cam: null, keys: {}, trail: [], pdir: V.norm([1, 0.16, 0]), pph: 0, pulse: 0, pg: 1 };
 const L_MAX = 60;
-
+ 
 function basis(){
   // orientation relative to "facing the throat", kept continuous through it
   const inward = V.mul(DIR, -1), up0 = [0, 1, 0];
@@ -252,14 +252,14 @@ function basis(){
   }
   return { F, R, U: Uu };
 }
-
+ 
 function camFrom(Fw){
   const refl = v => st.L < 0 ? V.add(v, V.mul(DIR, -2 * V.dot(v, DIR))) : v;
   const inward = V.mul(DIR, -1), R0 = V.norm(V.cross(inward, [0, 1, 0])), U0 = V.cross(R0, inward);
   const Fp = refl(V.norm(Fw)), Rr = V.norm(V.cross(Fp, U0)), Uu = V.cross(Rr, Fp);
   return { F: refl(Fp), R: refl(Rr), U: refl(Uu) };
 }
-
+ 
 let DPR = Math.min(window.devicePixelRatio || 1, 2), scale = 0.7;
 function resize(){
   const w = Math.round(innerWidth * DPR * scale), h = Math.round(innerHeight * DPR * scale);
@@ -285,7 +285,7 @@ canvas.addEventListener('pointerdown', e => { drag = { x: e.clientX, y: e.client
 canvas.addEventListener('pointermove', e => { if (!drag) return; const k = 2.2 / Math.min(innerWidth, innerHeight);
   st.yaw -= (e.clientX - drag.x) * k; st.pitch = Math.max(-1.45, Math.min(1.45, st.pitch + (e.clientY - drag.y) * k)); drag = { x: e.clientX, y: e.clientY }; st.moved = true; if (st.fly) st.fly.userLook = true; });
 canvas.addEventListener('pointerup', () => drag = null);
-
+ 
 $('fly').onclick = () => {
   // cross over, swing round in a wide arc and head home; the ordinary matter you carried through tips the throat and it closes
   if (st.col || st.fly) return;
@@ -296,7 +296,7 @@ $('fly').onclick = () => {
 $('speedBtn').onclick = () => { st.speed = st.speed === 1 ? 4 : st.speed === 4 ? 0.25 : 1; $('speedBtn').textContent = 'Speed ×' + st.speed; };
 $('again').onclick = () => $('home').onclick();
 $('home').onclick = () => { $('endMsg').classList.remove('on'); st.pdir = V.norm([1, 0.16, 0]); st.pph = 0; st.ph0 = undefined; st.phr = undefined; st.prevL = 40; st.fly = null; st.L = 40; st.yaw = 0; st.pitch = 0; st.roll = 0; st.zoom = 0; st.m = 0; st.fade = 1; st.tc = -1e9; st.col = null; st.cam = null; st.trail = []; DIR = DIR0.slice(); st.moved = true; $('acts').style.display = ''; };
-
+ 
 // distance is stepped evenly in log(1 + |l|/6): the view changes at a steady rate,
 // quicker across empty space where little changes, gentler near the throat where everything does
 const LC2 = 3, toS2 = L => Math.sign(L) * Math.log(1 + Math.abs(L) / LC2), fromS2 = x => Math.sign(x) * LC2 * (Math.exp(Math.abs(x)) - 1);
@@ -393,7 +393,7 @@ function step(dt){
     if (f.t >= f.T) st.fly = null;
   }
 }
-
+ 
 // ---- sound: a slow chord for each universe, a rush of air at the throat, chimes as you pass the lamps
 let AC = null, snd = null, soundOn = false;   // off until tapped, like the black hole: the tap itself unlocks audio on phones
 function buildAudio(){
@@ -467,7 +467,7 @@ function updateAudio(dt){
   // the lamps ring as you go past them
   st.prevL = L;
 }
-
+ 
 const TC_RATE = 1.8, TC_0 = 5, TC_END = 15;      // throat radii of light travel time per second; when the last light is in
 addEventListener('keydown', e => { const k = e.key.toLowerCase(); if (k === 'w' || k === 'arrowup') st.keys.w = true; if (k === 's' || k === 'arrowdown') st.keys.s = true; });
 addEventListener('keyup', e => { const k = e.key.toLowerCase(); if (k === 'w' || k === 'arrowup') st.keys.w = false; if (k === 's' || k === 'arrowdown') st.keys.s = false; });
@@ -640,7 +640,7 @@ function runVerify(){
 }
 $('verifyBtn').onclick = () => { $('verify').style.display = 'block'; setTimeout(runVerify, 30); };
 $('verifyClose').onclick = () => { $('verify').style.display = 'none'; };
-
+ 
 $('menuBtn').onclick = e => { e.stopPropagation(); const m = $('menu'); m.style.display = m.style.display === 'block' ? 'none' : 'block'; };
 window.addEventListener('pointerdown', e => { const m = $('menu'); if (m.style.display === 'block' && !m.contains(e.target) && e.target !== $('menuBtn')) m.style.display = 'none'; });
 document.querySelectorAll('#menu .mi[data-go]').forEach(el => el.onclick = () => { location.href = el.dataset.go; });
@@ -648,3 +648,5 @@ window.__st = st; window.__fly = () => $('fly').onclick();
 requestAnimationFrame(frame);
 </script>
 </body></html>
+ 
+

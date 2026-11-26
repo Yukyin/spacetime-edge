@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="280" height="76" viewBox="0 0 280 76">
+  <defs>
+    <radialGradient id="corona" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0.45" stop-color="#fff6e6" stop-opacity="0.9"/>
+      <stop offset="0.7" stop-color="#ffd9a0" stop-opacity="0.25"/>
+      <stop offset="1" stop-color="#ffd9a0" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="disc" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#fffdf8"/>
+      <stop offset="0.8" stop-color="#fff1d8"/>
+      <stop offset="1" stop-color="#ffcf8a"/>
+    </radialGradient>
+  </defs>
+  <rect x="1" y="1" width="278" height="74" rx="10" fill="#05060b" stroke="#3a3f55" stroke-width="1.5"/>
+  <circle cx="52" cy="38" r="27" fill="url(#corona)"/>
+  <circle cx="52" cy="38" r="14" fill="url(#disc)"/>
+  <circle cx="47" cy="35" r="1.6" fill="#6b4524" opacity="0.8"/>
+  <circle cx="50" cy="36.5" r="0.9" fill="#6b4524" opacity="0.7"/>
+  <text x="104" y="47" fill="#ffffff" font-family="Helvetica Neue, Arial, sans-serif" font-size="26" font-weight="600" letter-spacing="6">PLAY</text>
+  <path d="M232 28 L250 38 L232 48 Z" fill="#ffc77a"/>
+</svg>

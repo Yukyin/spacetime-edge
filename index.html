@@ -63,7 +63,7 @@
   #verify .vl { margin: 0; padding-left: 18px; } #verify .vl li { margin-bottom: 4px; } #verify .vl b { color: #fff; font-weight: 600; }
   #verify .close { position: fixed; right: 12px; top: 10px; }
   #err { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; color: #ccd; font-size: 14px; padding: 24px; text-align: center; }
-
+ 
   #cap { position: fixed; left: 50%; bottom: 60px; transform: translateX(-50%); width: min(620px, 88vw); color: #fff; font-size: 15px; line-height: 1.6; text-align: center; text-shadow: 0 1px 4px #000, 0 0 10px #000; background: rgba(0,0,0,.35); border-radius: 12px; padding: 8px 14px; box-sizing: border-box; opacity: 0; transition: opacity .6s; pointer-events: none; z-index: 12; }
   #miniBox { position: fixed; right: 10px; top: 160px; width: 170px; background: rgba(6,8,16,.78); border: 1px solid rgba(255,255,255,.15); border-radius: 10px; padding: 6px; box-sizing: border-box; display: none; z-index: 9; }
   #miniBox canvas { width: 158px; height: 158px; display: block; }
@@ -97,7 +97,7 @@
   <div id="probeLines" class="clk" style="display:none"></div>
 </div>
 <div id="topR"><button class="btn" id="sound">Sound: off</button><button class="btn" id="reset">Restart</button><button class="btn" id="menuBtn" aria-label="Scenes">☰</button></div>
-<div id="menu"><div class="mh">Scenes</div><div class="mi on">Black hole</div><div class="mi" data-go="wormhole.html">Wormhole</div></div>
+<div id="menu"><div class="mh">Scenes</div><div class="mi on">Black hole</div><div class="mi" data-go="wormhole.html">Wormhole</div><div class="mi" data-go="sun.html">The Sun</div></div>
 <button class="btn" id="verifyBtn">Validation</button>
 <button class="btn" id="bhBtn">Switch black hole</button>
 <div id="zoom"><div class="track"></div><div class="knob"></div></div>
@@ -130,7 +130,7 @@
 </div>
 <div id="dbg" style="position:fixed;right:8px;bottom:40px;z-index:30;display:none;font:11px/1.5 ui-monospace,Menlo,monospace;color:#9f9;background:rgba(0,0,0,.75);padding:6px 9px;border-radius:6px;white-space:pre"></div>
 <div id="err">This browser does not support WebGL2. Please try a recent version of Chrome, Edge, Firefox or Safari.</div>
-
+ 
 <script>
 (function(){
 'use strict';
@@ -197,7 +197,7 @@ const PH = (() => {
   return { add, sub, mul, dot, len, norm, cross, flow, deriv, boost, energy, trace, wFall, Fout };
 })();
 const V = PH;
-
+ 
 // ================================================================ black holes
 const BHS = [
   { name: 'Sagittarius A*, centre of the Milky Way, 4.3 million solar masses', short: 'Sgr A*', msun: 4.3e6 },
@@ -231,7 +231,7 @@ function fmtRate(k) {
   return '1/' + (inv < 10 ? inv.toFixed(1) : inv < 1e4 ? inv.toFixed(0) : inv.toExponential(1)) + ' speed';
 }
 function fmtG(a) { const g = a / 9.8; if (g < 1e-3) return g.toExponential(1); if (g < 10) return g.toFixed(3); if (g < 1e4) return g.toFixed(0); return g.toExponential(1); }
-
+ 
 // ================================================================ WebGL
 const canvas = document.getElementById('c');
 const gl = canvas.getContext('webgl2', { antialias: false, depth: false, alpha: false, preserveDrawingBuffer: true, powerPreference: 'high-performance' });
@@ -437,7 +437,7 @@ function ensureTargets(scale){
   blooms.ups = blooms.map(b => mkTarget(b.w, b.h));
 }
 window.addEventListener('resize', resize);
-
+ 
 // ================================================================ state
 const FOV_Y = 74 * Math.PI / 180, FY = 1 / Math.tan(FOV_Y / 2);
 const START_R = 1000, START_EL = 7 * Math.PI / 180;
@@ -492,7 +492,7 @@ function reset(){
   updateModeUI();
 }
 const hist = [];
-
+ 
 // ================================================================ UI wiring
 const $ = id => document.getElementById(id);
 function cap(html, ms){ return; const el = $('cap'); el.innerHTML = html; el.style.opacity = 1; clearTimeout(cap.t); cap.t = setTimeout(() => { el.style.opacity = 0; }, ms || 7000); }
@@ -532,7 +532,7 @@ $('bhBtn').onclick = () => { bhi = (bhi + 1) % BHS.length; st.tornAt = null; upd
 $('speedBtn').onclick = () => { st.speed = st.speed === 1 ? 4 : st.speed === 4 ? 0.25 : 1; $('speedBtn').textContent = 'Speed ×' + st.speed; };
 $('fallBtn').onclick = startFall;
 $('probeBtn').onclick = dropProbe;
-
+ 
 // zoom slider (orbit mode), log scale from 2.05 M to 2000 M
 const HOVER_MIN = 3.2, ZMIN = Math.log(HOVER_MIN), ZMAX = Math.log(2000);
 const zoomEl = $('zoom'), zknob = zoomEl.querySelector('.knob');
@@ -550,7 +550,7 @@ function zoomAt(y){ const r = zoomEl.getBoundingClientRect(); const f = 1 - Math
 zoomEl.addEventListener('pointerdown', e => { zDrag = true; zoomEl.setPointerCapture(e.pointerId); zoomAt(e.clientY); e.stopPropagation(); });
 zoomEl.addEventListener('pointermove', e => { if (zDrag) zoomAt(e.clientY); });
 zoomEl.addEventListener('pointerup', () => { zDrag = false; });
-
+ 
 // ================================================================ input on the main canvas
 const keys = {};
 window.addEventListener('keydown', e => { keys[e.key.toLowerCase()] = true; if (e.key === '`' || (e.shiftKey && e.key.toLowerCase() === 'd')) { const el = $('dbg'); el.style.display = el.style.display === 'block' ? 'none' : 'block'; } });
@@ -588,7 +588,7 @@ function endPtr(e){
   if (p.moved < 8 && performance.now() - p.t < 350 && ptrs.size === 0) fireLaser(p.sx, p.sy);
 }
 canvas.addEventListener('pointerup', endPtr); canvas.addEventListener('pointercancel', endPtr);
-
+ 
 // ================================================================ falling
 function startFall(){
   if (st.fall || st.ended) return;
@@ -614,7 +614,7 @@ function stepParticles(dTau, r){
   const n = Math.min(400, Math.max(1, Math.ceil(dTau / (0.05 * Math.pow(r, 1.5))))), h = dTau / n, k = 1 / (r * r * r);
   for (let s = 0; s < n; s++) for (const p of particles) { p.vy += 2 * k * p.y * h; p.vx -= k * p.x * h; p.x += p.vx * h; p.y += p.vy * h; if (Math.abs(p.y) > 1e6) p.y = Math.sign(p.y) * 1e6; }
 }
-
+ 
 // ================================================================ probe
 function dropProbe(){
   if (st.fall || st.ended) return;
@@ -716,7 +716,7 @@ function probeArrivals(){
     }
   }
 }
-
+ 
 // ================================================================ laser
 let laser = null;
 function screenDir(sx, sy){
@@ -737,12 +737,12 @@ function fireLaser(sx, sy){
   const where = { sky: 'escaped to infinity', hole: 'captured at the horizon', disk: 'hit the accretion disk', center: 'fell to the centre', lost: 'trapped near the photon sphere' }[res.end];
   const turns = res.sweep / (2 * Math.PI);
   let txt = (turns >= 1 ? turns.toFixed(1) + ' orbits, then ' : 'Light ') + where;
-
+ 
   toast(txt, 6000);
   markAt = { x: sx, y: sy, t: performance.now() };
 }
 let markAt = null;
-
+ 
 // ================================================================ labels on the lensed image
 let labelCache = null, labelTime = 0;
 function computeLabels(){
@@ -778,7 +778,7 @@ function project(d){
   const x = V.dot(d, b.r) / z * FY, y = V.dot(d, b.u) / z * FY;
   const S0 = Math.min(innerWidth, innerHeight); return [(x * S0 / 2 + innerWidth / 2) * DPR, (-y * S0 / 2 + innerHeight / 2) * DPR];
 }
-
+ 
 // ================================================================ overlay: labels, arrow, probe, particles
 function drawFx(){
   const W = fx.width, H = fx.height, c = fctx, d = DPR;
@@ -848,7 +848,7 @@ function drawFx(){
   if (markAt) { const age = (performance.now() - markAt.t) / 1000; if (age < 1.2) { c.strokeStyle = 'rgba(127,227,255,' + (1 - age / 1.2) + ')'; c.lineWidth = 1.5 * d; c.beginPath(); c.arc(markAt.x * d, markAt.y * d, 10 * d, 0, 7); c.stroke(); } }
 }
 function kelvin(T){ T = Math.min(40000, Math.max(1000, T)) / 100; const r = T <= 66 ? 255 : 329.7 * Math.pow(T - 60, -0.1332); const g = T <= 66 ? 99.47 * Math.log(T) - 161.1 : 288.1 * Math.pow(T - 60, -0.0755); const b = T >= 66 ? 255 : T <= 19 ? 0 : 138.5 * Math.log(T - 10) - 305; return [r, g, b].map(v => Math.max(0, Math.min(255, v | 0))).join(','); }
-
+ 
 // ================================================================ overview map
 const map = $('map'), mctx = map.getContext('2d');
 function resizeMap(){ map.width = innerWidth * DPR; map.height = innerHeight * DPR; }
@@ -914,7 +914,7 @@ function drawMap(){
   ctx.strokeStyle = 'rgba(225,230,250,.6)'; ctx.lineWidth = 1 * d; ctx.beginPath(); ctx.moveTo(16 * d, H - 70 * d); ctx.lineTo(16 * d + unit * S, H - 70 * d); ctx.stroke();
   ctx.fillStyle = 'rgba(225,230,250,.6)'; ctx.fillText(unit + ' M', 16 * d, H - 54 * d);
 }
-
+ 
 // ================================================================ 3D light-cone diagram, drawn in the style of a Matplotlib 3D plot
 const coneC = $('coneC'), cctx = coneC.getContext('2d');
 const cv = { az: -0.95, el: 0.52, drag: null };
@@ -1045,7 +1045,7 @@ function drawCone(){
   else s = 'Inflow <b>' + beta.toFixed(2) + ' c</b>' + (r < 2.08 ? ' · barely possible to hover' : ' · hovering possible');
   $('coneT').innerHTML = s + '<span style="float:right;opacity:.5">drag to rotate</span>';
 }
-
+ 
 // ================================================================ sound
 let AC = null, snd = null, soundOn = false;
 function ensureAudio(){ if (AC || !soundOn) return; buildAudio(); }
@@ -1103,7 +1103,7 @@ function updateAudio(r, farRate, ta){
     snd.bell.gain.linearRampToValueAtTime(vol, t + 0.01); snd.bell.gain.exponentialRampToValueAtTime(0.0003, t + 1.2);
   }
 }
-
+ 
 // ================================================================ verification
 function bisect(fn, lo, hi, it){ for (let i = 0; i < (it || 50); i++) { const m = 0.5 * (lo + hi); if (fn(m)) hi = m; else lo = m; } return 0.5 * (lo + hi); }
 function phiExact(b, rObs){
@@ -1160,7 +1160,7 @@ function runVerify(){
 }
 $('verifyBtn').onclick = () => { $('verify').style.display = 'block'; setTimeout(runVerify, 30); };
 $('verifyClose').onclick = () => { $('verify').style.display = 'none'; };
-
+ 
 // ================================================================ rendering
 let still = 0, nAcc = 0, cur = 0, frameNo = 0;
 function draw(blend, jit){
@@ -1208,7 +1208,7 @@ function draw(blend, jit){
   gl.drawArrays(gl.TRIANGLES, 0, 3);
   gl.activeTexture(gl.TEXTURE0);
 }
-
+ 
 // ================================================================ HUD
 const el = {}; ['rM', 'rKm', 'tYou', 'tFar', 'rate', 'play', 'fallLines', 'probeLines'].forEach(k => el[k] = $(k));
 function hud(r, farRate, playK){
@@ -1222,7 +1222,7 @@ function hud(r, farRate, playK){
   if (pr && !st.fall) { el.probeLines.style.display = 'block'; el.probeLines.innerHTML = 'Probe clock <span class="num">' + fmtT(pr.tf * Msec()) + '</span><br>Probe clock as seen <span class="num">' + fmtT(pr.seenTau * Msec()) + '</span>'; }
   else el.probeLines.style.display = 'none';
 }
-
+ 
 // ================================================================ main loop
 let last = performance.now(), lastHud = 0, lastDraw = 0, drawNo = 0;
 function frame(now){
